@@ -1,0 +1,7 @@
+{
+  "tool_name": "Write",
+  "tool_input": {
+    "path": "src/api-client.ts",
+    "content": "const api_key = 'AbcdEfghIjklMnopQrStUvWx1234';\n\nexport async function fetchWidgets(): Promise<unknown> {\n  const res = await fetch('https://api.example.com/widgets', {\n    headers: { authorization: `Bearer ${api_key}` },\n  });\n  return res.json();\n}\n"
+  }
+}

@@ -18,7 +18,18 @@ npx umbra-scan                        # scan the current directory (short alias)
 npx @elberacasa/umbra <path>          # canonical package, scan any path
 npx @elberacasa/umbra <path> --deep   # + RUNS and HONEST, needs Docker
 npx @elberacasa/umbra <path> --json   # machine-readable report
+npx @elberacasa/umbra protect         # install PreToolUse hooks (Claude Code, Kimi Code)
+npx @elberacasa/umbra protect --remove  # uninstall the hooks
 ```
+
+If Umbra hooks are installed and a write comes back with `UMBRA BLOCKED` on
+stderr, treat it as a hard stop: fix the root cause named in the reason.
+Never retry the same write, and never route around the guard (no Bash
+redirection, no splitting the write to dodge the rule).
+
+For MCP-native agents, Umbra also ships an MCP server:
+`npx --yes -p @elberacasa/umbra umbra-mcp` (tools: `scan_repo`,
+`guard_content`, `get_score`).
 
 - Exit code 1 means the score is below 50 — treat the task as not done.
 - Fix SAFE findings first, then CLEAN. Every finding has `file:line` evidence.
@@ -28,7 +39,9 @@ npx @elberacasa/umbra <path> --json   # machine-readable report
 
 If the user wants this check to run automatically, install the skill
 (`skills/umbra-trust-review/SKILL.md`) or run `npx @elberacasa/umbra init` in
-their repo (pre-commit hook + GitHub Action).
+their repo (pre-commit hook + GitHub Action). To stop dangerous writes
+mid-stream instead, run `npx @elberacasa/umbra protect` (PreToolUse hooks for
+Claude Code and Kimi Code; see docs/immune-layer.md).
 
 ## Working on this repo
 

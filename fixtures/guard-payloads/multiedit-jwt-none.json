@@ -1,0 +1,16 @@
+{
+  "tool_name": "MultiEdit",
+  "tool_input": {
+    "file_path": "src/auth.ts",
+    "edits": [
+      {
+        "old_string": "",
+        "new_string": "import jwt from 'jsonwebtoken';\n"
+      },
+      {
+        "old_string": "export function verifyToken(token: string, secret: string) {",
+        "new_string": "export function verifyToken(token: string, secret: string) {\n  return jwt.verify(token, secret, { algorithms: ['none', 'HS256'] });\n}"
+      }
+    ]
+  }
+}

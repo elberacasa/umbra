@@ -1,6 +1,6 @@
 {
   "name": "umbra-scan",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "Trust score for AI-generated code — alias package for @elberacasa/umbra. Run: npx umbra-scan <path>",
   "keywords": [
     "security",
@@ -35,6 +35,6 @@
     "README.md"
   ],
   "dependencies": {
-    "@elberacasa/umbra": "^0.3.0"
+    "@elberacasa/umbra": "^1.0.0"
   }
 }

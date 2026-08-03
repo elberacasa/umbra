@@ -15,20 +15,28 @@ import { unusedDepsRule } from './clean/unused-deps.js';
 import { largeFilesRule } from './clean/large-files.js';
 import { duplicationRule } from './clean/duplication.js';
 
+/**
+ * Scopes are annotated here (not in the rule modules) so the guard hot path
+ * has a single, reviewable list of what runs inline on every agent write.
+ * 'file' rules must be fast, network-free, and correct on a single file.
+ */
 export const allRules: Rule[] = [
-  hardcodedSecretsRule,
-  supabaseAntipatternsRule,
-  missingAuthRoutesRule,
-  injectionSinksRule,
-  missingRateLimitRule,
-  hallucinatedDepsRule,
-  corsWildcardRule,
-  jwtMisconfigRule,
-  debugFlagsRule,
-  exposedSensitiveFilesRule,
-  defaultCredentialsRule,
-  deadExportsRule,
-  unusedDepsRule,
-  largeFilesRule,
-  duplicationRule,
+  { ...hardcodedSecretsRule, scope: 'file' },
+  { ...injectionSinksRule, scope: 'file' },
+  { ...jwtMisconfigRule, scope: 'file' },
+  { ...corsWildcardRule, scope: 'file' },
+  { ...debugFlagsRule, scope: 'file' },
+  { ...defaultCredentialsRule, scope: 'file' },
+  { ...supabaseAntipatternsRule, scope: 'repo' },
+  { ...missingAuthRoutesRule, scope: 'repo' },
+  { ...missingRateLimitRule, scope: 'repo' },
+  { ...hallucinatedDepsRule, scope: 'repo' },
+  { ...exposedSensitiveFilesRule, scope: 'repo' },
+  { ...deadExportsRule, scope: 'repo' },
+  { ...unusedDepsRule, scope: 'repo' },
+  { ...largeFilesRule, scope: 'repo' },
+  { ...duplicationRule, scope: 'repo' },
 ];
+
+/** Rules that run in the inline guard hot path (single-file, <50ms). */
+export const fileScopeRules: Rule[] = allRules.filter((rule) => rule.scope === 'file');

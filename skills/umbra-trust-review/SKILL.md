@@ -41,8 +41,29 @@ Before you commit, open a PR, or declare a task finished:
    state, in one sentence with the evidence, why it is a false positive.
    Then continue. Low-confidence notes never block.
 
+## When Umbra blocks a write
+
+If `umbra protect` hooks are installed, Umbra reviews every file you write
+before it lands. When a write is refused, the hook exits 2 and the stderr
+starts with `UMBRA BLOCKED` followed by the rule id and the reason.
+
+Treat `UMBRA BLOCKED` as a hard stop:
+
+1. Read the stderr reason. It names the rule and the fix.
+2. Fix the root cause and write again (e.g. move the secret to an
+   environment variable reference, drop the live key, choose a path outside
+   `.git/hooks`).
+3. If the block is genuinely a false positive, state why in one sentence
+   with the evidence and ask the user how to proceed. Do not silently work
+   around it.
+
 ## What you may not do
 
+- Never route around the guard. No writing the same content via Bash
+  redirection, `tee`, or `cat <<EOF`; no splitting a write into pieces to
+  dodge the rule; no editing config to disable the hook. A block is a
+  signal about the content, and the signal travels with it.
+- Do not retry the identical write unchanged after a block.
 - Do not commit with a failing score.
 - Do not mark a task "done" while findings are open.
 - Do not claim tests pass, auth works, or secrets are handled unless you

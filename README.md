@@ -209,8 +209,12 @@ advertises its own trust score:
 - **`umbra init`**: installs both into a repo, a pre-commit hook that blocks
   commits below 50 and the Action. Existing hooks are appended to, never
   clobbered; `--force` refreshes, `--no-hook` / `--no-action` pick one side.
-- **MCP server** *(coming)*: agents call Umbra mid-stream and catch their own
-  mistakes before the code lands.
+- **`umbra protect`**: installs PreToolUse hooks into Claude Code and Kimi
+  Code (auto-detected, idempotent, `--remove` to uninstall) so Umbra reviews
+  every agent write mid-stream and blocks dangerous ones before they land.
+- **MCP server** (`umbra-mcp`): agents call Umbra mid-stream and catch their
+  own mistakes before the code lands. Add it with
+  `npx --yes -p @elberacasa/umbra umbra-mcp`.
 
 Day-to-day recipes (CI gating, JSON parsing, hooks): [docs/daily-use.md](./docs/daily-use.md).
 
@@ -219,7 +223,7 @@ Day-to-day recipes (CI gating, JSON parsing, hooks): [docs/daily-use.md](./docs/
 - **v0.1** *(shipped)*: CLI, SAFE + CLEAN static axes, deterministic score, verdict output, badge markdown.
 - **v0.2** *(shipped)*: the surfaces. Agent skill, GitHub Action, `umbra init`.
 - **v0.3** *(shipped, current)*: RUNS axis (sandbox build, boot, HTTP probe) and HONEST axis (claim receipts plus the liar cap).
-- **v1.0**: the MCP immune layer. Umbra sits between the agent and your codebase, intercepting writes mid-stream and scoring them before they land.
+- **v1.0** *(shipped)*: the immune layer. Umbra sits between the agent and your codebase, intercepting writes mid-stream and scoring them before they land. Full story in [docs/immune-layer.md](./docs/immune-layer.md).
 - **Beyond**: attack graphs across your dependency tree, a security twin of your app that gets probed so production doesn't, hosted report permalinks behind every badge.
 
 The wedge is a score. The destination is the verification layer every
@@ -259,6 +263,16 @@ the browser (bypasses all row level security), live Stripe keys in `.env`,
 API routes with no auth check, `alg: none` JWTs, CORS `*` with credentials,
 hallucinated dependencies that don't exist on npm, and whether its own claims
 about tests and builds are true.
+
+**Can Umbra stop my agent mid-write?**
+Yes, via hooks. Run `npx @elberacasa/umbra protect` and Umbra installs a
+PreToolUse hook into Claude Code and/or Kimi Code that reviews every
+`Write`/`Edit`/`MultiEdit` before it lands. Only high-confidence critical and
+high severity findings block (a wrong block gets tools uninstalled, so when
+in doubt Umbra warns), the `.git/hooks` path guard blocks git-hook planting
+(CVE-2026-26268) outright, and the guard fails open on its own errors so it
+never breaks your flow. Hooks are a guardrail, not a sandbox; details in
+[docs/immune-layer.md](./docs/immune-layer.md).
 
 **Can my AI coding agent use Umbra directly?**
 Yes, that is the design. The repo ships an [AGENTS.md](./AGENTS.md) and

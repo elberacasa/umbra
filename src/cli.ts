@@ -12,6 +12,8 @@ import { measureRuns } from './axes/runs/index.js';
 import { measureHonest } from './axes/honest/index.js';
 import type { AxisReport } from './axes/types.js';
 import { runInit } from './commands/init.js';
+import { runProtect } from './commands/protect.js';
+import { runGuardPayload } from './guard/hook.js';
 
 export const FAIL_THRESHOLD = 50;
 
@@ -109,8 +111,74 @@ async function main(argv: string[]): Promise<number> {
       }
     });
 
+  program
+    .command('guard')
+    .description('Guard a proposed agent write: reads one PreToolUse hook JSON payload from stdin')
+    .option('--stdin', 'read the hook payload from stdin (exit 0 = allow, exit 2 = block)')
+    .action(async (opts: { stdin?: boolean }) => {
+      // The hook contract fails open: any usage or runtime error exits 0.
+      try {
+        if (opts.stdin !== true) {
+          console.error('umbra: guard reads one hook JSON payload — pipe it via `umbra guard --stdin`');
+          return;
+        }
+        if (process.stdin.isTTY === true) {
+          console.error('umbra: guard skipped — stdin is a terminal, expected a piped hook payload');
+          return;
+        }
+        const input = await readStdin();
+        const result = await runGuardPayload(input);
+        if (result.stderr !== '') process.stderr.write(result.stderr);
+        process.exitCode = result.exitCode;
+      } catch (error) {
+        console.error(
+          `umbra: guard failed open — ${error instanceof Error ? error.message : String(error)}`,
+        );
+        process.exitCode = 0;
+      }
+    });
+
+  program
+    .command('protect')
+    .description('Install the immune layer: PreToolUse hooks that guard agent writes (Claude Code, Kimi Code)')
+    .option('--global', 'install into global CLI config instead of project config')
+    .option('--agent <name>', 'install for one agent only (claude, kimi); default: auto-detect')
+    .option('--remove', 'uninstall umbra hooks, restoring the original config')
+    .action(async (opts: { global?: boolean; agent?: string; remove?: boolean }) => {
+      try {
+        const result = await runProtect({
+          global: opts.global === true,
+          ...(opts.agent !== undefined ? { agent: opts.agent } : {}),
+          remove: opts.remove === true,
+        });
+        for (const p of result.installed) console.log(`installed  ${p}`);
+        for (const p of result.removed) console.log(`removed    ${p}`);
+        for (const p of result.skipped) console.log(`skipped    ${p}`);
+        for (const n of result.notes) console.log(`note       ${n}`);
+        if (
+          result.installed.length === 0 &&
+          result.removed.length === 0 &&
+          result.skipped.length === 0 &&
+          result.notes.length === 0
+        ) {
+          console.log('nothing to do');
+        }
+      } catch (error) {
+        console.error(`umbra: protect failed — ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
   await program.parseAsync(argv);
   return typeof process.exitCode === 'number' ? process.exitCode : 0;
+}
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : (chunk as Buffer));
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 const invokedDirectly =

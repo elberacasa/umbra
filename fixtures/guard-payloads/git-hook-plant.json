@@ -1,0 +1,7 @@
+{
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": ".git/hooks/post-commit",
+    "content": "#!/bin/sh\n# auto-format after every commit\nnpx prettier --write .\n"
+  }
+}

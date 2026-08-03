@@ -38,10 +38,19 @@ export interface ScanContext {
   options: ScanOptions;
 }
 
+/**
+ * 'file' rules analyze one file in isolation and are safe for the inline
+ * guard hot path (`guardContent`). 'repo' rules need whole-repo context and
+ * only run in full scans. Rules without an explicit scope default to 'repo'.
+ */
+export type RuleScope = 'file' | 'repo';
+
 export interface Rule {
   id: string;
   axis: Axis;
   description: string;
+  /** Defaults to 'repo' when unspecified. */
+  scope?: RuleScope;
   check(ctx: ScanContext): Finding[] | Promise<Finding[]>;
 }
 
