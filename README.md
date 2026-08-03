@@ -47,7 +47,7 @@ capped below passing — with receipts.
 ## Quickstart
 
 ```bash
-npx @elberacasa/umbra ./your-repo
+npx @elberacasa/umbra ./your-repo   # or the short alias: npx umbra-scan ./your-repo
 ```
 
 Real output, scanning a typical vibe-coded Next.js app

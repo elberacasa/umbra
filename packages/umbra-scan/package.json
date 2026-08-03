@@ -1,0 +1,40 @@
+{
+  "name": "umbra-scan",
+  "version": "0.3.0",
+  "description": "Trust score for AI-generated code — alias package for @elberacasa/umbra. Run: npx umbra-scan <path>",
+  "keywords": [
+    "security",
+    "scanner",
+    "vibe-coding",
+    "ai",
+    "trust",
+    "sast",
+    "static-analysis",
+    "cli",
+    "code-quality",
+    "llm"
+  ],
+  "license": "MIT",
+  "author": "Alejandro Beracasa (https://github.com/elberacasa)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elberacasa/umbra.git",
+    "directory": "packages/umbra-scan"
+  },
+  "bugs": "https://github.com/elberacasa/umbra/issues",
+  "homepage": "https://github.com/elberacasa/umbra",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "umbra-scan": "bin.js"
+  },
+  "files": [
+    "bin.js",
+    "README.md"
+  ],
+  "dependencies": {
+    "@elberacasa/umbra": "^0.3.0"
+  }
+}

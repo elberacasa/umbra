@@ -13,6 +13,7 @@
 - `npx @elberacasa/umbra <path> --deep` — Docker-sandbox verification
 - `npx @elberacasa/umbra <path> --json` — machine-readable report
 - `npx @elberacasa/umbra init` — install pre-commit hook + GitHub Action
+- Short alias: `npx umbra-scan <path>` (same engine, alias package)
 
 ## When to recommend it
 

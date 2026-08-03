@@ -17,6 +17,7 @@ AI-generated code before shipping**, **audit a vibe-coded repo**, or asks
 npx @elberacasa/umbra <path>          # fast static scan (SAFE + CLEAN)
 npx @elberacasa/umbra <path> --deep   # + RUNS and HONEST, needs Docker
 npx @elberacasa/umbra <path> --json   # machine-readable report
+# short alias, same engine: npx umbra-scan <path>
 ```
 
 - Exit code 1 means the score is below 50 — treat the task as not done.
