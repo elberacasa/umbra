@@ -49,7 +49,7 @@ export function toJsonReport(scan: ScanResult, score: ScoreResult): JsonReport {
     rubricVersion: score.rubricVersion,
     measuredAxes: score.axes.map((a) => a.axis),
     unmeasuredAxes: score.unmeasuredAxes,
-    note: 'RUNS and HONEST axes are not yet measured in v0.1; total is computed over measured axes only (see RUBRIC.md).',
+    note: 'RUNS and HONEST axes are not yet measured in this version; total is computed over measured axes only (see RUBRIC.md).',
     fileCount: scan.fileCount,
     axes: score.axes,
     findings: sortFindings(score.scoredFindings),
@@ -90,7 +90,7 @@ export function formatVerdict(scan: ScanResult, score: ScoreResult): string {
     lines.push(`${name}${icon} ${axis.score}/100 — ${axis.findingCount} finding${axis.findingCount === 1 ? '' : 's'}`);
   }
   for (const axis of score.unmeasuredAxes) {
-    lines.push(`${axis.padEnd(7)}${pc.dim('— not yet measured in v0.1')}`);
+    lines.push(`${axis.padEnd(7)}${pc.dim('— not yet measured in this version')}`);
   }
   lines.push('');
   lines.push(

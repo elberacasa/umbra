@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import path from 'node:path';
+import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { Command } from 'commander';
 import { runScan } from './engine/runner.js';
@@ -62,7 +63,8 @@ async function main(argv: string[]): Promise<number> {
 }
 
 const invokedDirectly =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
 if (invokedDirectly) {
   void main(process.argv);
 }

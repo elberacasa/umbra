@@ -6,17 +6,18 @@
 in under a minute — with file:line evidence for every finding, a verdict you can
 screenshot, and a badge for your README. No signup, no config, no daemon.
 
+![Umbra scanning a vibe-coded app: Trust Score 30/100](demo/demo.gif)
+
 <!--
-  DEMO GIF — drop here before launch.
-  File: demo/demo.gif (recorded from demo/demo.tape via charmbracelet/vhs)
+  DEMO GIF — recorded from demo/demo.tape via charmbracelet/vhs.
   Specs:
     - Terminal recording, 1200x600, dark theme
     - < 25 seconds total runtime
     - Beats per docs/demo-script.md: fresh shell → cd into vibe-coded app →
       `npx @elberacasa/umbra .` → verdict streams in → hold 3s on the final score
     - Render: `cd demo && vhs demo.tape`
-  Markdown to uncomment:
-  ![Umbra scanning a vibe-coded app: Trust Score 30/100](demo/demo.gif)
+  Re-record whenever the verdict format changes; stale demo output is a
+  credibility bug (see docs/demo-script.md).
 -->
 
 ## Quickstart
@@ -35,8 +36,8 @@ UMBRA TRUST SCORE: 30/100  🔴
 
 SAFE   🔴 0/100 — 15 findings
 CLEAN  ✅ 81/100 — 10 findings
-RUNS   — not yet measured in v0.1
-HONEST — not yet measured in v0.1
+RUNS   — not yet measured in this version
+HONEST — not yet measured in this version
 
 Score computed over measured axes only (SAFE 50%, CLEAN 30% of the full rubric). Rubric v1.
 
@@ -62,8 +63,8 @@ umbra ./your-repo --offline  # skip npm registry checks, fully local
 
 ## The four axes
 
-- **RUNS** — does it actually build and boot? Verified in a sandbox, not claimed in a README. *(reserved in v0.1)*
-- **HONEST** — is the agent lying? Its claims ("14 tests pass") replayed against reality, with receipts. *(reserved in v0.1)*
+- **RUNS** — does it actually build and boot? Verified in a sandbox, not claimed in a README. *(reserved in this version)*
+- **HONEST** — is the agent lying? Its claims ("14 tests pass") replayed against reality, with receipts. *(reserved in this version)*
 - **SAFE** — is it vulnerable? Hardcoded secrets, client-side service keys, missing RLS, injection sinks, hallucinated dependencies. *(measured)*
 - **CLEAN** — how much is slop? Dead exports, unused deps, mega-files, copy-paste duplication. *(measured)*
 
@@ -96,7 +97,7 @@ advertises its own trust score:
 
 ## Where this goes
 
-v0.1 is static analysis: SAFE and CLEAN, measured deterministically, offline.
+Umbra today is static analysis: SAFE and CLEAN, measured deterministically, offline.
 The roadmap builds the full trust layer for AI-generated software:
 
 - **v0.2** — the surfaces above: skill, GitHub Action, launch.

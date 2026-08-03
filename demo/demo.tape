@@ -35,7 +35,7 @@ Enter
 Sleep 1s
 
 # Beat 3 — the one command (0:05–0:08)
-Type "npx @elberacasa/umbra ."
+Type "npx --yes @elberacasa/umbra ."
 Sleep 1s
 Enter
 
