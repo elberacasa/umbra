@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00f0ff"/>
+      <stop offset="1" stop-color="#b829f7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#00f0ff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#00f0ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="640" fill="#0a0a0f"/>
+  <circle cx="320" cy="320" r="300" fill="url(#glow)"/>
+  <circle cx="320" cy="320" r="140" fill="url(#g)"/>
+  <circle cx="283" cy="320" r="122" fill="#0a0a0f"/>
+  <text x="540" y="300" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="100" font-weight="700" letter-spacing="26" fill="#e6e6f0">UMBRA</text>
+  <text x="544" y="382" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="34" font-weight="400" fill="#9a9ab0">The trust score for AI-generated code.</text>
+  <text x="544" y="468" font-family="Menlo, Monaco, monospace" font-size="30" fill="#00f0ff">npx @elberacasa/umbra</text>
+</svg>

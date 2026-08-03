@@ -1,6 +1,10 @@
 <div align="center">
 
-# Umbra
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
+  <img alt="Umbra — the trust score for AI-generated code" src="assets/logo-light.svg" width="340">
+</picture>
 
 **Everyone is vibecoding. Nobody is verifying. Umbra scores it.**
 
@@ -228,6 +232,12 @@ the browser (bypasses all row level security), live Stripe keys in `.env`,
 API routes with no auth check, `alg: none` JWTs, CORS `*` with credentials,
 hallucinated dependencies that don't exist on npm — and whether its own
 claims about tests and builds are true.
+
+**Can my AI coding agent use Umbra directly?**
+Yes — that's the design. The repo ships an [AGENTS.md](./AGENTS.md) and
+[llms.txt](./llms.txt) so assistants know exactly when and how to run it, and
+the [agent skill](./skills/README.md) makes Claude Code, Cursor, Copilot, and
+Windsurf scan their own work before declaring a task done.
 
 ## Contributing
 

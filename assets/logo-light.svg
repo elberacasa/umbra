@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00c4d4"/>
+      <stop offset="1" stop-color="#9a1fd0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="40" cy="40" r="24" fill="url(#g)"/>
+  <circle cx="33.5" cy="40" r="21" fill="#0a0a0f"/>
+  <text x="84" y="55" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="10" fill="#16161f">UMBRA</text>
+</svg>
