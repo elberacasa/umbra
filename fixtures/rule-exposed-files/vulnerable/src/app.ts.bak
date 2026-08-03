@@ -1,0 +1,4 @@
+// stale backup copy of the app entrypoint
+export function main() {
+  console.log('old version');
+}

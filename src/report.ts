@@ -1,6 +1,7 @@
 import pc from 'picocolors';
 import type { Finding, ScanResult } from './engine/types.js';
 import type { ScoreResult } from './score/score.js';
+import type { AxisReport, ClaimReceipt } from './axes/types.js';
 
 const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 } as const;
 const CONFIDENCE_RANK = { high: 0, medium: 1, low: 2 } as const;
@@ -41,21 +42,31 @@ export interface JsonReport {
   findings: Finding[];
   notes: Finding[];
   badge: string;
+  /** True when a verified-false claim capped the score below passing. */
+  liarCapApplied: boolean;
+  /** Sandboxed axis reports — present only when the scan ran with --deep. */
+  axisReports?: AxisReport[];
 }
 
-export function toJsonReport(scan: ScanResult, score: ScoreResult): JsonReport {
-  return {
+export function toJsonReport(scan: ScanResult, score: ScoreResult, axisReports?: AxisReport[]): JsonReport {
+  const report: JsonReport = {
     score: score.total,
     rubricVersion: score.rubricVersion,
     measuredAxes: score.axes.map((a) => a.axis),
     unmeasuredAxes: score.unmeasuredAxes,
-    note: 'RUNS and HONEST axes are not yet measured in this version; total is computed over measured axes only (see RUBRIC.md).',
+    note:
+      axisReports === undefined
+        ? 'RUNS and HONEST were not measured (fast scan) — run with --deep to verify them in a Docker sandbox. Total is computed over measured axes only (see RUBRIC.md).'
+        : 'RUNS and HONEST were verified in a Docker sandbox (--deep); axes that could not be verified are reported as skipped and excluded from the total (see RUBRIC.md).',
     fileCount: scan.fileCount,
     axes: score.axes,
     findings: sortFindings(score.scoredFindings),
     notes: score.notes,
     badge: badgeMarkdown(score.total),
+    liarCapApplied: score.liarCapApplied,
   };
+  if (axisReports !== undefined) report.axisReports = axisReports;
+  return report;
 }
 
 function colorizeSeverity(f: Finding, text: string): string {
@@ -76,7 +87,50 @@ function formatFindingLine(f: Finding): string {
   return colorizeSeverity(f, location !== '' ? `${prefix} — ${location}` : `  ${prefix.trim()}`);
 }
 
-export function formatVerdict(scan: ScanResult, score: ScoreResult): string {
+function runsSummary(report: AxisReport): string {
+  const seconds = (report.durationMs / 1000).toFixed(1);
+  const suffix = `(verified in sandbox, ${seconds}s)`;
+  const probe = report.evidence
+    .map((e) => /GET http:\/\/[^/]+(\/\S*)/.exec(e.message)?.[1])
+    .find((p) => p !== undefined);
+  if (report.score >= 100) {
+    return `builds, boots, ${probe ?? '/'} responds ${suffix}`;
+  }
+  if (report.score >= 50) return `builds and boots but no HTTP response ${suffix}`;
+  if (report.score >= 25) return `builds but crashes on boot ${suffix}`;
+  return `build failed ${suffix}`;
+}
+
+function honestSummary(report: AxisReport): string {
+  const receipts = report.receipts ?? [];
+  const verified = receipts.filter((r) => r.verdict === 'verified').length;
+  const failed = receipts.filter((r) => r.verdict === 'failed').length;
+  const unverifiable = receipts.length - verified - failed;
+  const parts = [
+    failed > 0 ? `${failed} claim${failed === 1 ? '' : 's'} failed` : undefined,
+    verified > 0 ? `${verified} verified` : undefined,
+    unverifiable > 0 ? `${unverifiable} unverifiable` : undefined,
+  ].filter((p) => p !== undefined);
+  return parts.length > 0 ? parts.join(', ') : 'no verifiable claims';
+}
+
+/** Short reason a sandboxed axis was skipped, drawn from its narration. */
+function skipReason(report: AxisReport): string {
+  const reason = [...report.details].reverse().find((d) => d.trim() !== '');
+  return reason !== undefined ? ` — ${reason}` : '';
+}
+
+function formatClaimLine(receipt: ClaimReceipt): string {
+  const where = `${receipt.claim.file}:${receipt.claim.line}`;
+  if (receipt.verdict === 'failed') {
+    const actual = receipt.actual !== undefined ? ` — actually ${receipt.actual}` : '';
+    return pc.bold(pc.red(`  CLAIM FAILED: "${receipt.claim.text}" — ${where}${actual}`));
+  }
+  const actual = receipt.actual !== undefined ? ` — ${receipt.actual}` : '';
+  return pc.dim(`  CLAIM VERIFIED: "${receipt.claim.text}" — ${where}${actual}`);
+}
+
+export function formatVerdict(scan: ScanResult, score: ScoreResult, axisReports?: AxisReport[]): string {
   const lines: string[] = [];
   const totalIcon = verdictIcon(score.total);
 
@@ -84,20 +138,53 @@ export function formatVerdict(scan: ScanResult, score: ScoreResult): string {
   lines.push(score.total >= 50 ? pc.bold(pc.green(headline)) : pc.bold(pc.red(headline)));
   lines.push('');
 
+  // Static axes first, then the sandboxed axes with their evidence summaries.
   for (const axis of score.axes) {
+    if (axis.axis === 'RUNS' || axis.axis === 'HONEST') continue;
     const icon = verdictIcon(axis.score);
     const name = axis.axis.padEnd(7);
     lines.push(`${name}${icon} ${axis.score}/100 — ${axis.findingCount} finding${axis.findingCount === 1 ? '' : 's'}`);
   }
-  for (const axis of score.unmeasuredAxes) {
-    lines.push(`${axis.padEnd(7)}${pc.dim('— not yet measured in this version')}`);
+
+  for (const axis of ['RUNS', 'HONEST'] as const) {
+    const name = axis.padEnd(7);
+    const report = axisReports?.find((r) => r.axis === axis);
+    if (report === undefined) {
+      lines.push(`${name}${pc.dim('— not measured — run with --deep')}`);
+      continue;
+    }
+    if (report.status === 'skipped') {
+      lines.push(`${name}${pc.dim(`— not measured${skipReason(report)}`)}`);
+      continue;
+    }
+    const icon = verdictIcon(report.score);
+    const summary = axis === 'RUNS' ? runsSummary(report) : honestSummary(report);
+    lines.push(`${name}${icon} ${report.score}/100 — ${summary}`);
   }
+
   lines.push('');
   lines.push(
     pc.dim(
-      `Score computed over measured axes only (SAFE 50%, CLEAN 30% of the full rubric). Rubric v${score.rubricVersion}.`,
+      `Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v${score.rubricVersion}.`,
     ),
   );
+  if (score.liarCapApplied) {
+    lines.push(
+      pc.bold(pc.red('Score capped below passing: a documented claim was verified false. Trust is the product.')),
+    );
+  }
+
+  // The receipts: failed claims are the money line — render them unmissably.
+  const honest = axisReports?.find((r) => r.axis === 'HONEST');
+  const receiptLines = (honest?.receipts ?? [])
+    .filter((r) => r.verdict !== 'unverifiable')
+    .sort((a, b) => (a.verdict === b.verdict ? 0 : a.verdict === 'failed' ? -1 : 1))
+    .map(formatClaimLine);
+  if (receiptLines.length > 0) {
+    lines.push('');
+    lines.push(pc.bold('Claim receipts:'));
+    lines.push(...receiptLines);
+  }
 
   const top = sortFindings(score.scoredFindings).slice(0, 5);
   if (top.length > 0) {

@@ -1,6 +1,7 @@
 import type { Axis, Confidence, Finding, Severity } from '../engine/types.js';
+import type { AxisReport } from '../axes/types.js';
 
-export const RUBRIC_VERSION = 1;
+export const RUBRIC_VERSION = 2;
 
 /** Deduction points per finding, by severity, before the confidence multiplier. */
 export const SEVERITY_POINTS: Record<Severity, number> = {
@@ -16,15 +17,22 @@ export const CONFIDENCE_MULTIPLIER: Record<Exclude<Confidence, 'low'>, number> =
   medium: 0.5,
 };
 
-/** Full rubric weights. RUNS and HONEST are reserved but unmeasured in v0.1. */
+/** Full rubric v2 weights. RUNS and HONEST join the total only when measured (--deep). */
 export const AXIS_WEIGHTS: Record<Axis, number> = {
-  SAFE: 0.5,
-  CLEAN: 0.3,
-  RUNS: 0.1,
-  HONEST: 0.1,
+  SAFE: 0.35,
+  RUNS: 0.25,
+  HONEST: 0.25,
+  CLEAN: 0.15,
 };
 
-/** Axes actually measured by this version of the scanner. */
+/**
+ * The liar cap: a documented claim that is verified false ("14 tests pass" —
+ * 3 do) caps the total below the pass threshold, no matter how clean the rest
+ * of the repo is. Trust is the product; a caught lie forfeits it.
+ */
+export const LIAR_CAP = 49;
+
+/** Axes measured by the static scan alone. RUNS/HONEST need a sandbox (--deep). */
 export const MEASURED_AXES: Axis[] = ['SAFE', 'CLEAN'];
 
 export interface AxisScore {
@@ -42,6 +50,8 @@ export interface ScoreResult {
   /** Low-confidence findings — surfaced as notes, never scored. */
   notes: Finding[];
   unmeasuredAxes: Axis[];
+  /** True when a verified-false claim capped the total at LIAR_CAP. */
+  liarCapApplied: boolean;
 }
 
 function findingDeduction(f: Finding): number {
@@ -56,31 +66,56 @@ export function scoreAxis(findings: Finding[]): number {
   return Math.max(0, Math.round(100 - deduction));
 }
 
-export function computeScore(findings: Finding[]): ScoreResult {
+/**
+ * Deterministic total over the measured axes, renormalized to 0-100.
+ * SAFE/CLEAN always come from static findings. RUNS/HONEST count as measured
+ * only when an AxisReport is supplied AND its status is not 'skipped' — a
+ * skipped axis (no Docker, no run path, no claims) never moves the total.
+ */
+export function computeScore(findings: Finding[], axisReports: AxisReport[] = []): ScoreResult {
   const scoredFindings = findings.filter((f) => f.confidence !== 'low');
   const notes = findings.filter((f) => f.confidence === 'low');
 
-  const axes: AxisScore[] = MEASURED_AXES.map((axis) => {
+  const measuredReports = new Map<Axis, AxisReport>();
+  for (const report of axisReports) {
+    if (report.status !== 'skipped') measuredReports.set(report.axis, report);
+  }
+
+  const axes: AxisScore[] = [];
+  for (const axis of MEASURED_AXES) {
     const axisFindings = findings.filter((f) => f.axis === axis);
-    return {
+    axes.push({ axis, score: scoreAxis(axisFindings), findingCount: axisFindings.length });
+  }
+  for (const axis of ['RUNS', 'HONEST'] as const) {
+    const report = measuredReports.get(axis);
+    if (report === undefined) continue;
+    axes.push({
       axis,
-      score: scoreAxis(axisFindings),
-      findingCount: axisFindings.length,
-    };
-  });
+      score: report.score,
+      findingCount: findings.filter((f) => f.axis === axis).length,
+    });
+  }
 
-  const measuredWeight = MEASURED_AXES.reduce((sum, a) => sum + AXIS_WEIGHTS[a], 0);
+  const measuredWeight = axes.reduce((sum, a) => sum + AXIS_WEIGHTS[a.axis], 0);
   const weighted = axes.reduce((sum, a) => sum + AXIS_WEIGHTS[a.axis] * a.score, 0);
-  const total = Math.round(weighted / measuredWeight);
+  const raw = Math.round(weighted / measuredWeight);
 
+  const liarCapApplied = axisReports.some(
+    (r) =>
+      r.axis === 'HONEST' &&
+      r.status !== 'skipped' &&
+      (r.receipts ?? []).some((receipt) => receipt.verdict === 'failed'),
+  );
+  const total = liarCapApplied ? Math.min(raw, LIAR_CAP) : raw;
+
+  const measured = new Set(axes.map((a) => a.axis));
   return {
     total,
     rubricVersion: RUBRIC_VERSION,
     axes,
     scoredFindings,
     notes,
-    unmeasuredAxes: (Object.keys(AXIS_WEIGHTS) as Axis[]).filter(
-      (a) => !MEASURED_AXES.includes(a),
-    ),
+    unmeasuredAxes: (Object.keys(AXIS_WEIGHTS) as Axis[]).filter((a) => !measured.has(a)),
+    liarCapApplied,
   };
 }

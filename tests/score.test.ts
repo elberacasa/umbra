@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding } from '../src/engine/types';
 import { computeScore, RUBRIC_VERSION, scoreAxis } from '../src/score/score';
+import type { AxisReport } from '../src/axes/types';
 
 function finding(overrides: Partial<Finding>): Finding {
   return {
@@ -46,13 +47,77 @@ describe('score', () => {
     expect(scoreAxis(many)).toBe(0);
   });
 
-  it('weighs SAFE 50% and CLEAN 30%, renormalized over measured axes', () => {
+  it('weighs SAFE 35% and CLEAN 15%, renormalized over measured axes', () => {
     const result = computeScore([
       finding({ axis: 'SAFE', severity: 'high', confidence: 'high' }), // SAFE 85
       finding({ axis: 'CLEAN', severity: 'medium', confidence: 'high' }), // CLEAN 92
     ]);
-    // (0.5*85 + 0.3*92) / 0.8 = (42.5 + 27.6) / 0.8 = 87.625 -> 88
+    // (0.35*85 + 0.15*92) / 0.5 = (29.75 + 13.8) / 0.5 = 87.1 -> 87
+    expect(result.total).toBe(87);
+  });
+
+  it('folds measured RUNS/HONEST reports into the weighted total', () => {
+    const runs: AxisReport = { axis: 'RUNS', score: 100, status: 'pass', details: [], evidence: [], durationMs: 1 };
+    const honest: AxisReport = { axis: 'HONEST', score: 50, status: 'fail', details: [], evidence: [], durationMs: 1 };
+    const result = computeScore([], [runs, honest]);
+    // 0.35*100 + 0.25*100 + 0.25*50 + 0.15*100 = 35 + 25 + 12.5 + 15 = 87.5 -> 88
     expect(result.total).toBe(88);
+    expect(result.axes.map((a) => a.axis)).toEqual(['SAFE', 'CLEAN', 'RUNS', 'HONEST']);
+    expect(result.unmeasuredAxes).toEqual([]);
+  });
+
+  it('excludes skipped axis reports from the total — unverifiable is never punished', () => {
+    const skipped: AxisReport = { axis: 'RUNS', score: 0, status: 'skipped', details: [], evidence: [], durationMs: 0 };
+    const withSkip = computeScore([], [skipped]);
+    expect(withSkip.total).toBe(100);
+    expect(withSkip.unmeasuredAxes).toEqual(['RUNS', 'HONEST']);
+    expect(withSkip.axes.map((a) => a.axis)).toEqual(['SAFE', 'CLEAN']);
+  });
+
+  it('is deterministic with axis reports — same inputs, same score', () => {
+    const runs: AxisReport = { axis: 'RUNS', score: 50, status: 'pass', details: [], evidence: [], durationMs: 5 };
+    const findings = [finding({ axis: 'SAFE', severity: 'high', confidence: 'high' })];
+    expect(computeScore(findings, [runs]).total).toBe(computeScore([...findings], [runs]).total);
+  });
+
+  it('caps the total at 49 when a documented claim is verified false (liar cap)', () => {
+    const honest: AxisReport = {
+      axis: 'HONEST',
+      score: 50,
+      status: 'fail',
+      details: [],
+      evidence: [],
+      durationMs: 1,
+      receipts: [
+        {
+          claim: { text: '14 tests pass', file: 'README.md', line: 7, kind: 'test-count', expected: 14 },
+          verdict: 'failed',
+          actual: '3 tests pass, 0 fail',
+        },
+      ],
+    };
+    const result = computeScore([], [honest]);
+    // Without the cap: (0.35*100 + 0.25*50 + 0.15*100) / 0.75 = 83. Caught lying → capped.
+    expect(result.total).toBe(49);
+    expect(result.liarCapApplied).toBe(true);
+  });
+
+  it('does not cap when claims are verified or unverifiable', () => {
+    const honest: AxisReport = {
+      axis: 'HONEST',
+      score: 100,
+      status: 'pass',
+      details: [],
+      evidence: [],
+      durationMs: 1,
+      receipts: [
+        { claim: { text: 'All tests pass', file: 'README.md', line: 3, kind: 'all-tests' }, verdict: 'verified' },
+        { claim: { text: '90% coverage', file: 'README.md', line: 4, kind: 'coverage', expected: 90 }, verdict: 'unverifiable' },
+      ],
+    };
+    const result = computeScore([], [honest]);
+    expect(result.total).toBe(100);
+    expect(result.liarCapApplied).toBe(false);
   });
 
   it('is deterministic — same findings, same score, twice', () => {

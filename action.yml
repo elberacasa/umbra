@@ -116,7 +116,7 @@ runs:
           lines.push(`| ${axis.axis} | ${axis.score}/100 ${icon(axis.score)} | ${axis.findingCount} |`);
         }
         for (const axis of report.unmeasuredAxes) {
-          lines.push(`| ${axis} | — | not yet measured |`);
+          lines.push(`| ${axis} | — | not measured (run with --deep) |`);
         }
 
         if (report.findings.length > 0) {

@@ -18,7 +18,7 @@ describe('CLI smoke', () => {
     expect(output).toMatch(/UMBRA TRUST SCORE: \d+\/100/);
     expect(output).toContain('SAFE');
     expect(output).toContain('CLEAN');
-    expect(output).toContain('not yet measured');
+    expect(output).toContain('not measured — run with --deep');
     expect(output).toContain('Top findings:');
     expect(output).toContain('img.shields.io/badge/Umbra_Trust_Score');
     expect(exitCode).toBe(1); // bad fixture scores below 50
@@ -30,7 +30,7 @@ describe('CLI smoke', () => {
       scanOptions: { resolvePackage: stubResolver },
     });
     const report = JSON.parse(output) as JsonReport;
-    expect(report.rubricVersion).toBe(1);
+    expect(report.rubricVersion).toBe(2);
     expect(report.score).toBeGreaterThanOrEqual(0);
     expect(report.score).toBeLessThan(50);
     expect(report.measuredAxes).toEqual(['SAFE', 'CLEAN']);

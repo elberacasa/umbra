@@ -1,0 +1,10 @@
+{
+  "name": "broken-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Umbra fixture: syntax error in index.js; build and boot must fail.",
+  "scripts": {
+    "build": "node --check index.js",
+    "start": "node index.js"
+  }
+}

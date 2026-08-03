@@ -1,0 +1,13 @@
+{
+  "name": "runnable-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Umbra fixture: a tiny express server that builds and answers /health.",
+  "scripts": {
+    "build": "node --check index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "4.21.2"
+  }
+}
