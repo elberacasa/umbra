@@ -1,0 +1,60 @@
+name: Umbra Self-Scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: umbra-self-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean-app:
+    # Dogfood: the intentionally clean fixture must pass the default gate (50).
+    name: Scan fixtures/clean-app (expected pass)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Umbra
+        uses: actions/checkout@v4
+
+      - name: Umbra Trust Score
+        uses: ./
+        with:
+          path: fixtures/clean-app
+
+  bad-app:
+    # Dogfood: the intentionally hostile fixture MUST fail the gate. The scan
+    # step is continue-on-error so the expected failure doesn't block CI, and
+    # the assertion below turns a surprising pass into a scanner regression.
+    name: Scan fixtures/bad-app (expected fail)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Umbra
+        uses: actions/checkout@v4
+
+      - name: Umbra Trust Score
+        id: umbra
+        uses: ./
+        continue-on-error: true
+        with:
+          path: fixtures/bad-app
+
+      - name: Assert the gate actually caught bad-app
+        if: steps.umbra.outcome == 'success'
+        shell: bash
+        run: |
+          echo "::error::fixtures/bad-app passed the Trust Score gate — the scanner is regressing."
+          exit 1
+
+      - name: Record expected failure
+        if: steps.umbra.outcome == 'failure'
+        shell: bash
+        run: |
+          echo 'fixtures/bad-app scored below the gate, as designed. ✅ The scanner catches its own hostile fixture.' \
+            >> "$GITHUB_STEP_SUMMARY"
