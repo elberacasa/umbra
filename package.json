@@ -1,7 +1,7 @@
 {
-  "name": "umbra",
-  "version": "0.1.0",
-  "description": "Trust Score for AI-built software. npx umbra <path> → one score, one badge.",
+  "name": "@elberacasa/umbra",
+  "version": "0.2.0",
+  "description": "Trust Score for AI-built software. npx @elberacasa/umbra <path> → one score, one badge.",
   "type": "module",
   "bin": {
     "umbra": "dist/cli.js"
@@ -18,9 +18,32 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
   },
+  "keywords": [
+    "security",
+    "scanner",
+    "vibe-coding",
+    "ai",
+    "trust",
+    "sast",
+    "static-analysis",
+    "cli",
+    "code-quality",
+    "llm"
+  ],
+  "author": "Alejandro Beracasa <elberacasa@users.noreply.github.com> (https://github.com/elberacasa)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elberacasa/umbra.git"
+  },
+  "bugs": "https://github.com/elberacasa/umbra/issues",
+  "homepage": "https://github.com/elberacasa/umbra#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "commander": "^12.1.0",
     "picocolors": "^1.1.1"

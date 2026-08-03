@@ -1,0 +1,213 @@
+name: Umbra Trust Score
+description: >-
+  Scores the checked-out repository with Umbra (0-100 Trust Score), posts the
+  verdict as a pull-request comment, uploads the JSON report as an artifact,
+  and fails the check when the score drops below min-score.
+author: elberacasa
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  path:
+    description: 'Path to the repository to scan, relative to the workspace root.'
+    required: false
+    default: '.'
+  min-score:
+    description: 'Minimum acceptable Trust Score (0-100). The check fails below this value.'
+    required: false
+    default: '50'
+  offline:
+    description: 'Skip npm registry checks (dependency verification is skipped with a note).'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'Token used to post or update the pull-request comment.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: 'The Umbra Trust Score (0-100).'
+    value: ${{ steps.scan.outputs.score }}
+  report-path:
+    description: 'Absolute path of the JSON report on the runner (also uploaded as the umbra-report artifact).'
+    value: ${{ steps.scan.outputs.report-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Build Umbra
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        npm ci --no-audit --no-fund
+        npm run build
+
+    - name: Scan repository
+      id: scan
+      shell: bash
+      env:
+        UMBRA_PATH: ${{ inputs.path }}
+        UMBRA_OFFLINE: ${{ inputs.offline }}
+      run: |
+        set -u
+        target="${{ github.workspace }}/${UMBRA_PATH}"
+        report="${RUNNER_TEMP}/umbra-report.json"
+
+        args=("$target" --json)
+        if [ "${UMBRA_OFFLINE}" = "true" ]; then
+          args+=(--offline)
+        fi
+
+        scan_exit=0
+        node "${{ github.action_path }}/dist/cli.js" "${args[@]}" > "$report" || scan_exit=$?
+
+        if [ "$scan_exit" = "2" ]; then
+          echo "::error::Umbra crashed while scanning ${target}."
+          exit 1
+        fi
+
+        # Exit code 1 only means "score below the CLI threshold"; the
+        # configurable min-score gate runs as the final step of this action.
+        score=$(node -e 'const r=require(process.argv[1]); process.stdout.write(String(r.score));' "$report") \
+          || { echo "::error::Umbra produced no readable JSON report."; exit 1; }
+
+        echo "score=${score}" >> "$GITHUB_OUTPUT"
+        echo "report-path=${report}" >> "$GITHUB_OUTPUT"
+        echo "scan-exit=${scan_exit}" >> "$GITHUB_OUTPUT"
+
+    - name: Render verdict
+      id: verdict
+      if: always()
+      shell: bash
+      env:
+        UMBRA_REPORT: ${{ steps.scan.outputs.report-path }}
+        UMBRA_MIN_SCORE: ${{ inputs.min-score }}
+        UMBRA_TARGET_PATH: ${{ inputs.path }}
+        UMBRA_COMMENT_FILE: ${{ runner.temp }}/umbra-comment.md
+      run: |
+        cat > "${RUNNER_TEMP}/umbra-render.mjs" <<'RENDER_EOF'
+        import { readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+
+        const icon = (n) => (n >= 80 ? '✅' : n >= 50 ? '⚠️' : '🔴');
+
+        const report = JSON.parse(readFileSync(process.env.UMBRA_REPORT, 'utf8'));
+        const minScore = Number(process.env.UMBRA_MIN_SCORE);
+        const target = process.env.UMBRA_TARGET_PATH || '.';
+        const passed = report.score >= minScore;
+
+        const lines = [];
+        lines.push('<!-- umbra-trust-score -->');
+        lines.push(`## Umbra Trust Score: ${report.score}/100 ${icon(report.score)}`);
+        lines.push('');
+        lines.push(
+          `Scanned **${report.fileCount}** file${report.fileCount === 1 ? '' : 's'} in \`${target}\` · rubric v${report.rubricVersion} · gate: **${minScore}**`,
+        );
+        lines.push('');
+        lines.push('| Axis | Score | Findings |');
+        lines.push('| :--- | :---: | ---: |');
+        for (const axis of report.axes) {
+          lines.push(`| ${axis.axis} | ${axis.score}/100 ${icon(axis.score)} | ${axis.findingCount} |`);
+        }
+        for (const axis of report.unmeasuredAxes) {
+          lines.push(`| ${axis} | — | not yet measured |`);
+        }
+
+        if (report.findings.length > 0) {
+          lines.push('');
+          lines.push('<details><summary><b>Top findings</b> (every finding has file:line evidence)</summary>');
+          lines.push('');
+          lines.push('| Severity | Rule | Finding | Evidence |');
+          lines.push('| :--- | :--- | :--- | :--- |');
+          for (const f of report.findings.slice(0, 10)) {
+            const loc = f.file !== undefined ? `\`${f.file}${f.line !== undefined ? `:${f.line}` : ''}\`` : '—';
+            const msg = String(f.message).replace(/\|/g, '\\|');
+            lines.push(`| ${f.severity} | \`${f.ruleId}\` | ${msg} | ${loc} |`);
+          }
+          if (report.findings.length > 10) {
+            lines.push(`| … | | ${report.findings.length - 10} more in the JSON artifact | |`);
+          }
+          lines.push('');
+          lines.push('</details>');
+        }
+
+        lines.push('');
+        if (passed) {
+          lines.push(`✅ **${report.score} ≥ ${minScore}** — this check passes.`);
+        } else {
+          lines.push(`🔴 **${report.score} < ${minScore}** — below the required minimum, this check fails.`);
+        }
+        lines.push('');
+        lines.push('```md');
+        lines.push(report.badge);
+        lines.push('```');
+        lines.push('');
+        lines.push(
+          '<sub>Scored by <a href="https://github.com/elberacasa/umbra">Umbra</a> — deterministic, evidence-backed trust scoring for AI-built software. Full report in the <b>umbra-report</b> artifact.</sub>',
+        );
+        lines.push('');
+
+        const markdown = lines.join('\n');
+        writeFileSync(process.env.UMBRA_COMMENT_FILE, markdown);
+        if (process.env.GITHUB_STEP_SUMMARY) {
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown);
+        }
+        process.stdout.write(markdown);
+        RENDER_EOF
+        node "${RUNNER_TEMP}/umbra-render.mjs"
+
+    - name: Comment on pull request
+      if: always() && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        UMBRA_COMMENT_FILE: ${{ runner.temp }}/umbra-comment.md
+        UMBRA_PR: ${{ github.event.pull_request.number }}
+      run: |
+        marker='<!-- umbra-trust-score -->'
+        repo='${{ github.repository }}'
+        {
+          existing=$(gh api "repos/${repo}/issues/${UMBRA_PR}/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/${repo}/issues/comments/${existing}" \
+              -F body=@"${UMBRA_COMMENT_FILE}" --silent
+            echo "Updated existing Umbra comment ${existing}."
+          else
+            gh api -X POST "repos/${repo}/issues/${UMBRA_PR}/comments" \
+              -F body=@"${UMBRA_COMMENT_FILE}" --silent
+            echo "Posted new Umbra comment."
+          fi
+        } || echo "::warning::Umbra could not post the PR comment (token permissions?). The check result is unaffected."
+
+    - name: Upload JSON report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: umbra-report
+        path: ${{ steps.scan.outputs.report-path }}
+        if-no-files-found: error
+        retention-days: 30
+
+    - name: Enforce min-score gate
+      if: always()
+      shell: bash
+      env:
+        UMBRA_SCORE: ${{ steps.scan.outputs.score }}
+        UMBRA_MIN_SCORE: ${{ inputs.min-score }}
+      run: |
+        if [ -z "${UMBRA_SCORE}" ]; then
+          echo "::error::Umbra did not produce a score; see earlier steps."
+          exit 1
+        fi
+        if [ "${UMBRA_SCORE}" -lt "${UMBRA_MIN_SCORE}" ]; then
+          echo "::error::Umbra Trust Score ${UMBRA_SCORE}/100 is below the required minimum of ${UMBRA_MIN_SCORE}."
+          exit 1
+        fi
+        echo "Umbra Trust Score ${UMBRA_SCORE}/100 meets the minimum of ${UMBRA_MIN_SCORE}."
