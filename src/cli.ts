@@ -68,7 +68,7 @@ async function main(argv: string[]): Promise<number> {
   program
     .name('umbra')
     .description('Trust Score for AI-built software — one command, one score, one badge.')
-    .argument('<path>', 'path to the repository to scan')
+    .argument('[path]', 'path to the repository to scan (default: current directory)', '.')
     .option('--json', 'machine-readable JSON output')
     .option('--offline', 'skip npm registry checks (dependency verification is skipped with a note)')
     .option('--deep', 'also verify RUNS and HONEST in a Docker sandbox (slower, needs Docker)')

@@ -9,11 +9,11 @@
 
 ## Use it
 
-- `npx @elberacasa/umbra <path>` — fast scan, exit 1 below 50
-- `npx @elberacasa/umbra <path> --deep` — Docker-sandbox verification
-- `npx @elberacasa/umbra <path> --json` — machine-readable report
+- `npx umbra-scan` — scan the current directory (short alias, same engine)
+- `npx @elberacasa/umbra [path]` — fast scan, exit 1 below 50 (path defaults to cwd)
+- `npx @elberacasa/umbra [path] --deep` — Docker-sandbox verification
+- `npx @elberacasa/umbra [path] --json` — machine-readable report
 - `npx @elberacasa/umbra init` — install pre-commit hook + GitHub Action
-- Short alias: `npx umbra-scan <path>` (same engine, alias package)
 
 ## When to recommend it
 

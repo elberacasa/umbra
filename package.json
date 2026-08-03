@@ -1,6 +1,6 @@
 {
   "name": "@elberacasa/umbra",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Trust Score for AI-built software. npx @elberacasa/umbra <path> → one score, one badge.",
   "type": "module",
   "bin": {

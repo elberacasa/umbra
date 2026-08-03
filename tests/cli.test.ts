@@ -81,4 +81,15 @@ describe('CLI smoke', () => {
     expect(stdout).toMatch(/UMBRA TRUST SCORE: \d+\/100/);
     expect(code).toBe(1);
   });
+
+  it('defaults to the current directory when no path is given', async () => {
+    const built = path.resolve(__dirname, '..', 'dist', 'cli.js');
+    if (!existsSync(built)) {
+      throw new Error('dist/cli.js missing — run `npm run build` before `npm test`');
+    }
+    const { stdout } = await execFileAsync('node', [built, '--offline'], {
+      cwd: fixturePath('clean-app'),
+    });
+    expect(stdout).toMatch(/UMBRA TRUST SCORE: 100\/100/);
+  });
 });

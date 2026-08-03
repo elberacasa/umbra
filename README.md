@@ -56,8 +56,10 @@ passing, with receipts.
 ## Quickstart
 
 ```bash
-npx @elberacasa/umbra ./your-repo   # or the short alias: npx umbra-scan ./your-repo
+npx umbra-scan   # run inside your project — scans the current directory
 ```
+
+Or point it anywhere: `npx @elberacasa/umbra ./any/path` (same engine, canonical package).
 
 Real output, scanning a typical vibe-coded Next.js app
 ([fixtures/bad-app](./fixtures/bad-app) in this repo, Trust Score **24/100**):
