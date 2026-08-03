@@ -1,0 +1,16 @@
+{
+  "name": "vibeshop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AI-generated storefront. It works on my machine.",
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@supabase/supabase-js": "2.44.0",
+    "axios": "1.7.2",
+    "lodash": "4.17.21",
+    "supafast-orm": "1.0.0",
+    "react-query-v9-pro": "3.2.1"
+  }
+}
