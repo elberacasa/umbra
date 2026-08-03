@@ -1,7 +1,7 @@
 import type { Finding } from '../engine/types.js';
 
 /**
- * The guard-engine contract from docs/v1.0-design.md (Component 1).
+ * The guard-engine contract (Component 1 of the v1.0 immune-layer design).
  *
  * The real implementation ships as `guardContent` in `src/guard/`; this module
  * types the seam so the MCP server compiles and is tested against the exact

@@ -1,8 +1,7 @@
 # The Immune Layer (v1.0)
 
-Status: shipped. Binding design contract: [v1.0-design.md](./v1.0-design.md).
-Where implementation disagrees with that doc, the code is the proof and the
-doc gets fixed.
+Status: shipped. Where this doc disagrees with the implementation, the code
+is the proof and the doc gets fixed.
 
 Umbra started as a score you run after the agent finishes: scan the repo, get
 0–100, fix what it finds. v1.0 moves Umbra from "scan on demand" to "guardrail
