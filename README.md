@@ -241,7 +241,7 @@ get a passing trust score. For contrast, a genuinely working app
 
 | Axis | Question | How it's measured |
 |------|----------|-------------------|
-| **SAFE** (35%) | Is it vulnerable? | 17 deterministic static rules, every scan, fully offline. |
+| **SAFE** (35%) | Is it vulnerable? | 13 deterministic static rules, every scan, fully offline. |
 | **RUNS** (25%) | Does it actually build and boot? | Docker sandbox: install, build, start, HTTP probe. *(`--deep`)* |
 | **HONEST** (25%) | Is the agent lying about tests or the build? | Claims extracted from READMEs and agent files, replayed against sandbox reality, receipts emitted. *(`--deep`)* |
 | **CLEAN** (15%) | How much is slop? | Static rules: dead exports, unused deps, mega-files, duplication. |
