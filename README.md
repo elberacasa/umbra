@@ -20,7 +20,7 @@ claimed. One command, fully local, evidence for every finding.
 [![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 
-[Quickstart](#quickstart) · [Demo](#demo) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing)
+[Quickstart](#quickstart) · [Demo](#demo) · [The Audit](#the-audit-61-vibe-coded-repos-scanned) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
 </div>
 
@@ -56,11 +56,25 @@ locked-down Docker sandbox, then replays the agent's own claims against
 reality. If the agent is lying about tests, the score is capped below
 passing, with receipts.
 
-We put real numbers behind the claim: [The Vibe-Coding Security Audit](./docs/vibe-coding-audit-2026-08.md)
-ran Umbra over 61 public AI-built repos — one in four had a hardcoded-secret
-finding, one in four had unauthenticated API routes, 13% committed entire
-database files. The six most damaging patterns are explained in depth, with
-the full per-repo table and methodology.
+## The audit: 61 vibe-coded repos, scanned
+
+We ran Umbra over 61 public, actively-maintained AI-built repos and
+published everything. [The Vibe-Coding Security Audit](./docs/vibe-coding-audit-2026-08.md):
+
+| Finding | Repos hit |
+|---|---:|
+| Hardcoded-secret findings (committed `.env`, service keys in source) | **25%** |
+| API routes with no auth check | **26%** |
+| Injection sinks (SQL interpolation, unsafe HTML injection) | **49%** |
+| Entire databases / SQL dumps committed to git | **13%** |
+| At least one critical finding | **10%** |
+| Zero scored findings (genuinely clean) | 7 of 61 |
+
+Mean trust score: **74/100**. One in five repos fails outright. The full
+report has per-class deep dives with representative snippets and fixes, the
+complete per-repo table, and an honest methodology section — including the
+false positives we found in our own rules while running it, and fixed
+(rubric v3).
 
 ## Quickstart
 
