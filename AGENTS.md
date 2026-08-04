@@ -18,9 +18,14 @@ npx umbra-scan                        # scan the current directory (short alias)
 npx @elberacasa/umbra <path>          # canonical package, scan any path
 npx @elberacasa/umbra <path> --deep   # + RUNS and HONEST, needs Docker
 npx @elberacasa/umbra <path> --json   # machine-readable report
+npx @elberacasa/umbra <path> --report # write UMBRA.md: findings as an agent task list
 npx @elberacasa/umbra protect         # install PreToolUse hooks (Claude Code, Kimi Code)
 npx @elberacasa/umbra protect --remove  # uninstall the hooks
 ```
+
+If the repo contains `UMBRA.md`, treat its unchecked findings as your task
+list: fix each at its file:line, then regenerate with `--report`. Never edit
+the file by hand; the scan regenerates it.
 
 If Umbra hooks are installed and a write comes back with `UMBRA BLOCKED` on
 stderr, treat it as a hard stop: fix the root cause named in the reason.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import path from 'node:path';
-import { realpathSync } from 'node:fs';
+import { realpathSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { Command } from 'commander';
 import pc from 'picocolors';
@@ -8,7 +8,7 @@ import { runScan } from './engine/runner.js';
 import type { ScanOptions } from './engine/types.js';
 import { allRules } from './rules/index.js';
 import { computeScore } from './score/score.js';
-import { formatVerdict, toJsonReport } from './report.js';
+import { formatVerdict, toJsonReport, toMarkdownReport } from './report.js';
 import { measureRuns } from './axes/runs/index.js';
 import { measureHonest } from './axes/honest/index.js';
 import type { AxisReport } from './axes/types.js';
@@ -23,12 +23,16 @@ export interface ExecuteOptions {
   offline?: boolean;
   /** Also verify RUNS and HONEST in a Docker sandbox. */
   deep?: boolean;
+  /** Also render the agent-actionable UMBRA.md markdown report. */
+  report?: boolean;
   scanOptions?: ScanOptions;
 }
 
 export interface ExecuteResult {
   output: string;
   exitCode: number;
+  /** UMBRA.md contents — present only when ExecuteOptions.report is true. */
+  markdown?: string;
 }
 
 export async function execute(targetPath: string, options: ExecuteOptions = {}): Promise<ExecuteResult> {
@@ -63,7 +67,11 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
     ? JSON.stringify(toJsonReport(scan, score, axisReports), null, 2)
     : formatVerdict(scan, score, axisReports);
 
-  return { output, exitCode: score.total < FAIL_THRESHOLD ? 1 : 0 };
+  const result: ExecuteResult = { output, exitCode: score.total < FAIL_THRESHOLD ? 1 : 0 };
+  if (options.report === true) {
+    result.markdown = toMarkdownReport(scan, score, axisReports);
+  }
+  return result;
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -75,10 +83,16 @@ async function main(argv: string[]): Promise<number> {
     .option('--json', 'machine-readable JSON output')
     .option('--offline', 'skip npm registry checks (dependency verification is skipped with a note)')
     .option('--deep', 'also verify RUNS and HONEST in a Docker sandbox (slower, needs Docker)')
-    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean }) => {
+    .option('--report', 'write UMBRA.md, an agent-actionable markdown report, into the scanned repo')
+    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean }) => {
       try {
         const result = await execute(target, opts);
         console.log(result.output);
+        if (result.markdown !== undefined) {
+          const reportPath = path.join(path.resolve(target), 'UMBRA.md');
+          writeFileSync(reportPath, result.markdown, 'utf8');
+          console.log(pc.dim(`wrote ${reportPath}`));
+        }
         // The star line: one dim line, interactive terminals only. Never in
         // CI logs, pipes, or --json output — a guardrail tool earns its ask.
         if (opts.json !== true && process.stdout.isTTY === true) {

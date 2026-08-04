@@ -2,7 +2,7 @@ export { runScan } from './engine/runner.js';
 export { walkRepo } from './engine/walker.js';
 export { allRules } from './rules/index.js';
 export { computeScore, scoreAxis, RUBRIC_VERSION } from './score/score.js';
-export { formatVerdict, toJsonReport, badgeMarkdown } from './report.js';
+export { formatVerdict, toJsonReport, toMarkdownReport, badgeMarkdown } from './report.js';
 export { measureRuns } from './axes/runs/index.js';
 export { measureHonest } from './axes/honest/index.js';
 export { runInit } from './commands/init.js';

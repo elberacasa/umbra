@@ -10,8 +10,8 @@ export interface GuardHookResult {
 /** Tools whose writes we guard (aligned with the `protect` hook matchers). */
 const WRITE_TOOL_RE = /^(Write|Edit|StrReplace.*|MultiEdit.*)$/;
 
-/** One-line remediation per blocking rule, written for the agent to act on. */
-const REMEDIATION: Record<string, string> = {
+/** One-line remediation per rule, written for the agent to act on. */
+export const REMEDIATION: Record<string, string> = {
   'safe/hardcoded-secrets':
     'Move the secret into an untracked .env read via process.env, and rotate it if it was ever real',
   'safe/injection-sinks':
@@ -24,6 +24,24 @@ const REMEDIATION: Record<string, string> = {
     'Remove the bypass or gate it behind an explicit config that cannot ship to production',
   'safe/default-credentials':
     'Use a strong unique credential from the environment, not a default literal',
+  'safe/supabase-antipatterns':
+    'Use the anon key in client code, move privileged queries behind a server route, and enable RLS policies on every table',
+  'safe/missing-auth-routes':
+    'Add an auth check at the top of the route handler and return 401 before touching data',
+  'safe/missing-rate-limit':
+    'Add rate limiting to the auth endpoint (middleware or a library like limiter) to blunt brute force',
+  'safe/hallucinated-deps':
+    'Remove or replace dependencies that do not resolve on npm; a nonexistent package name can be squatted maliciously',
+  'safe/exposed-sensitive-files':
+    'Remove the file from the repo and from git history, rotate any credential it contains, and gitignore the pattern',
+  'clean/dead-exports':
+    'Delete the unused export or wire it in; dead surface area rots',
+  'clean/unused-deps':
+    'Remove the dependency from package.json; unused deps are supply-chain surface for zero value',
+  'clean/large-files':
+    'Split the file by responsibility; files this size are where agents hide mistakes',
+  'clean/duplication':
+    'Extract the duplicated block into one shared function and call it from both sites',
 };
 
 const ALLOW = 0;

@@ -57,6 +57,14 @@ Treat `UMBRA BLOCKED` as a hard stop:
    with the evidence and ask the user how to proceed. Do not silently work
    around it.
 
+## If UMBRA.md exists in the repo
+
+The repo carries an Umbra trust report. Treat its unchecked findings as your
+task list before writing new code: fix each at its `file:line`, then re-run
+`npx umbra-scan --report` to regenerate it. Never check off, delete, or edit
+UMBRA.md by hand — the scan regenerates it. If the scan is clean, you may
+delete the file entirely.
+
 ## What you may not do
 
 - Never route around the guard. No writing the same content via Bash

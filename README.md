@@ -96,6 +96,7 @@ The exit code is **1** when the score is below 50, so CI can gate on it.
 umbra ./your-repo --json     # machine-readable output
 umbra ./your-repo --offline  # skip npm registry checks, fully local
 umbra ./your-repo --deep     # also verify RUNS and HONEST in a Docker sandbox
+umbra ./your-repo --report   # write UMBRA.md: an agent-actionable task list your AI fixes
 umbra init                   # install the pre-commit gate + GitHub Action
 ```
 
