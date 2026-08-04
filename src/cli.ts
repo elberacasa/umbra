@@ -189,6 +189,21 @@ async function main(argv: string[]): Promise<number> {
       }
     });
 
+  program
+    .command('mcp')
+    .description('Start the Umbra MCP server on stdio (tools: scan_repo, guard_content, get_score)')
+    .action(async () => {
+      try {
+        // Dynamic import: scanning stays free of the MCP SDK startup cost, and
+        // the module's invokedDirectly guard prevents a double server start.
+        const { runUmbraMcpServer } = await import('./mcp/server.js');
+        await runUmbraMcpServer();
+      } catch (error) {
+        console.error(`umbra: mcp failed — ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
   await program.parseAsync(argv);
   return typeof process.exitCode === 'number' ? process.exitCode : 0;
 }

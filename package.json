@@ -1,7 +1,8 @@
 {
   "name": "@elberacasa/umbra",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Trust Score for AI-built software. npx @elberacasa/umbra <path> → one score, one badge.",
+  "mcpName": "io.github.elberacasa/umbra",
   "type": "module",
   "bin": {
     "umbra": "dist/cli.js",
