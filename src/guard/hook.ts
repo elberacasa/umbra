@@ -24,6 +24,10 @@ export const REMEDIATION: Record<string, string> = {
     'Remove the bypass or gate it behind an explicit config that cannot ship to production',
   'safe/default-credentials':
     'Use a strong unique credential from the environment, not a default literal',
+  'safe/prompt-injection':
+    'Remove the hidden directive or invisible character; an instruction file must say exactly what it appears to say',
+  'safe/mcp-config':
+    'Pin the server package to an exact version, never pipe a download into a shell, and reference secrets via ${VAR} env indirection',
   'safe/supabase-antipatterns':
     'Use the anon key in client code, move privileged queries behind a server route, and enable RLS policies on every table',
   'safe/missing-auth-routes':

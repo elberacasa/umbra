@@ -1,7 +1,7 @@
-# Umbra Scoring Rubric — v3
+# Umbra Scoring Rubric — v4
 
 Umbra's score is deterministic: the same repo always produces the same score.
-The rubric is versioned (`RUBRIC_VERSION = 3` in `src/score/score.ts`) so scores
+The rubric is versioned (`RUBRIC_VERSION = 4` in `src/score/score.ts`) so scores
 stay comparable over time.
 
 ## Axes and weights
@@ -76,11 +76,50 @@ findings are dropped entirely — they do not even become notes. One exception:
 `safe/hardcoded-secrets` still fires in non-production paths when it sees an
 obviously-real live key (`sk_live_*`, `AKIA*`, or a decodable JWT), downgraded
 to medium confidence — a real key leaked into a test is a breach class, a
-placeholder is not.
+placeholder is not. One exception to that exception: canonical documentation
+example values (Stripe's docs `sk_live_4eC39HqLyjWDarjtT1zdp7dc`, AWS's
+`AKIAIOSFODNN7EXAMPLE`, and the AWS docs example secret) are suppressed in
+production paths — they are copy-paste artifacts from official docs, not
+leaked credentials. In non-production paths they still fire at the live-key
+exception's medium confidence, because fixtures and tests use them as
+stand-ins for real payloads.
+
+Text-pattern SAFE rules (injection-sinks, cors-wildcard, debug-flags,
+jwt-misconfig, default-credentials) match against source with comments,
+regex-literal source, and — where the pattern is a call expression — string
+contents masked out, so a finding always points at executable code, never at
+prose about code (`// never use eval()` does not fire). When the masker
+cannot parse a file, the finding is kept but downgraded one confidence level
+rather than dropped.
 
 `clean/dead-exports` reports at **low confidence** — its findings are notes
 and never move the score. Textual import detection cannot see path aliases,
 dynamic imports, or dependency injection, so the heuristic is advisory only.
+
+### Agent-config rules (SAFE)
+
+Two rules cover the agent-configuration threat surface — files an agent reads
+or executes at every session start, where a hostile edit is self-modification:
+
+- `safe/prompt-injection` scans instruction-bearing files (`*.md`, `*.mdc`,
+  `*.txt`, `.cursorrules`, `.cursor/**`, `.windsurf/**`,
+  `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `skills/**`)
+  for invisible Unicode (high/high), instruction-override phrases hidden in
+  HTML comments (high/high), the same phrases in visible prose
+  (medium/medium), and long base64 blobs (low-confidence note).
+- `safe/mcp-config` parses MCP configs (`.mcp.json`, `mcp.json`,
+  `*.mcp.json`, `claude_desktop_config.json`, by basename) and flags servers
+  that run unpinned packages via `npx -y`/`uvx`/`bunx` (medium/medium), pipe
+  downloads into a shell (high/high), or embed literal secrets in `env` blocks
+  or args (critical/high). `${VAR}` env indirection is the correct pattern and
+  never flags; unparseable JSON fails closed with no findings.
+
+Agent-config paths (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.cursor/**`,
+`.windsurf/**`, `skills/**`, `.github/copilot-instructions.md`) are **always
+production**, exempt from the `*.md` suppression above — but paths under
+non-production directories (`fixtures/**`, `docs/**`, `tests/**`, …) stay
+suppressed even when shaped like agent config, so fixture payloads and
+threat-model write-ups never self-flag.
 
 ### RUNS (sandbox)
 
@@ -119,6 +158,20 @@ If any documented claim is **verified false** (a receipt with verdict
 the passing threshold, no matter how clean everything else is. A repo caught
 lying does not get a passing trust score. The report prints the cap notice
 and the JSON report sets `liarCapApplied: true`.
+
+## Migrating from rubric v3
+
+Rubric v4 adds two SAFE rules for the agent-configuration threat surface:
+`safe/prompt-injection` and `safe/mcp-config` (see above). Both are
+file-scope, so they also run in the inline guard (`umbra guard` / `protect`
+hooks) when an agent edits its own config. Consequences:
+
+- **Repos with agent config may score lower.** Hidden directives in
+  instruction files, unpinned MCP servers, and literal secrets in MCP configs
+  now deduct from SAFE where v3 saw nothing.
+- **Repos without agent config are unchanged.** No existing rule, weight, or
+  threshold moved; a repo with no instruction files or MCP configs gets the
+  identical v3 score.
 
 ## Migrating from rubric v2
 

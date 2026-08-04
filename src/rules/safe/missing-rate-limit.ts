@@ -1,4 +1,5 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const ROUTE_FILE_RE = /(^|\/)app\/api\/(.+\/)?route\.(ts|tsx|js|jsx)$/;
 const AUTH_FLOW_PATH_RE = /(login|signin|sign-in|signup|sign-up|register|forgot|reset|otp|verify)/i;
@@ -18,6 +19,7 @@ export const missingRateLimitRule: Rule = {
 
     for (const file of ctx.files) {
       if (!ROUTE_FILE_RE.test(file.relPath)) continue;
+      if (isNonProductionPath(file.relPath)) continue;
       if (!AUTH_FLOW_PATH_RE.test(file.relPath)) continue;
       if (!POST_EXPORT_RE.test(file.content)) continue;
 

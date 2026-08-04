@@ -1,0 +1,6 @@
+---
+description: Style rules
+---
+
+Use descriptive variable names. Prefer small functions. Keep files under
+300 lines where practical.

@@ -1,7 +1,9 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
+import { downgradeConfidence, maskCommentsAndRegex, maskNonCode } from '../text.js';
 
 const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json)$/;
-const TEST_FILE_RE = /\.(test|spec)\.[tj]sx?$/;
+const JS_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const DEBUG_TRUE_RE = /(?<![\w$.])["']?debug["']?\s*:\s*true\b/;
 const NODE_ENV_RE = /\bNODE_ENV\b/;
 const NON_PROD_RE = /(?:!==|!=)\s*['"`](?:production|prod)['"`]|(?:===|==)\s*['"`](?:development|dev|test)['"`]/;
@@ -25,23 +27,38 @@ export const debugFlagsRule: Rule = {
 
     for (const file of ctx.files) {
       if (!CODE_FILE_RE.test(file.relPath)) continue;
-      if (TEST_FILE_RE.test(file.relPath)) continue;
+      if (isNonProductionPath(file.relPath)) continue;
 
-      const hasErrorMiddleware = ERROR_MIDDLEWARE_RE.test(file.content);
+      // Two masked views (JSON has no comments and its strings are the data,
+      // so JSON is matched raw):
+      // - text: comments/regex masked, strings visible — for the NODE_ENV
+      //   check, whose pattern includes the 'production' string literal.
+      // - code: strings also masked — for debug:true and err.stack, where a
+      //   hit inside a message string is prose, not a flag.
+      const isJs = JS_FILE_RE.test(file.relPath);
+      const text = isJs ? maskCommentsAndRegex(file.content) : undefined;
+      const code = isJs ? maskNonCode(file.content) : undefined;
+      const textLines = text !== undefined ? text.text.split('\n') : file.lines;
+      const codeLines = code !== undefined ? code.text.split('\n') : file.lines;
+      const textConfident = text === undefined || text.complete;
+      const codeConfident = code === undefined || code.complete;
+
+      const hasErrorMiddleware = ERROR_MIDDLEWARE_RE.test(code?.text ?? file.content);
       let debugReported = false;
       let envBypassReported = false;
       let stackReported = false;
 
       for (let i = 0; i < file.lines.length; i++) {
-        const line = file.lines[i];
-        if (line === undefined) continue;
+        const textLine = textLines[i];
+        const codeLine = codeLines[i];
+        if (textLine === undefined || codeLine === undefined) continue;
 
-        if (!debugReported && DEBUG_TRUE_RE.test(line)) {
+        if (!debugReported && DEBUG_TRUE_RE.test(codeLine)) {
           findings.push({
             ruleId: this.id,
             axis: this.axis,
             severity: 'medium',
-            confidence: 'medium',
+            confidence: codeConfident ? 'medium' : downgradeConfidence('medium'),
             message: 'debug: true committed in source — verbose logging/errors may leak internals in production',
             file: file.relPath,
             line: i + 1,
@@ -49,8 +66,8 @@ export const debugFlagsRule: Rule = {
           debugReported = true;
         }
 
-        if (!envBypassReported && NODE_ENV_RE.test(line) && NON_PROD_RE.test(line)) {
-          const windowLines = file.lines.slice(i, i + 3);
+        if (!envBypassReported && NODE_ENV_RE.test(textLine) && NON_PROD_RE.test(textLine)) {
+          const windowLines = textLines.slice(i, i + 3);
           const window = windowLines.join('\n');
           const returnsTrue = RETURN_TRUE_RE.test(window);
           const callsNext = CALL_NEXT_RE.test(window);
@@ -60,7 +77,7 @@ export const debugFlagsRule: Rule = {
               ruleId: this.id,
               axis: this.axis,
               severity: 'high',
-              confidence: 'high',
+              confidence: textConfident ? 'high' : downgradeConfidence('high'),
               message:
                 'NODE_ENV check bypasses the auth path outside production — a misconfigured environment disables authentication',
               file: file.relPath,
@@ -72,7 +89,7 @@ export const debugFlagsRule: Rule = {
               ruleId: this.id,
               axis: this.axis,
               severity: 'medium',
-              confidence: 'medium',
+              confidence: textConfident ? 'medium' : downgradeConfidence('medium'),
               message:
                 'NODE_ENV check short-circuits a middleware path outside production — verify it cannot disable security controls',
               file: file.relPath,
@@ -82,18 +99,18 @@ export const debugFlagsRule: Rule = {
           }
         }
 
-        if (!stackReported && STACK_RE.test(line)) {
-          const previous = i > 0 ? file.lines[i - 1] : undefined;
+        if (!stackReported && STACK_RE.test(codeLine)) {
+          const previous = i > 0 ? codeLines[i - 1] : undefined;
           const sendsStack =
-            RESPONSE_SEND_RE.test(line) ||
+            RESPONSE_SEND_RE.test(codeLine) ||
             (previous !== undefined && /(?:res|reply|response)\.status\s*\(\s*$/.test(previous)) ||
-            (hasErrorMiddleware && STACK_PROPERTY_RE.test(line));
+            (hasErrorMiddleware && STACK_PROPERTY_RE.test(codeLine));
           if (sendsStack) {
             findings.push({
               ruleId: this.id,
               axis: this.axis,
               severity: 'high',
-              confidence: 'high',
+              confidence: codeConfident ? 'high' : downgradeConfidence('high'),
               message:
                 'Error handler sends err.stack to the client — stack traces leak file paths, dependencies and internals',
               file: file.relPath,

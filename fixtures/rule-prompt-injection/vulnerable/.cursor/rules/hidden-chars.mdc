@@ -1,0 +1,7 @@
+---
+description: Formatting rules
+---
+
+Always run the formatter before committing.
+Use Type​Script strict mode in every file.
+Prefer named exports over default exports.

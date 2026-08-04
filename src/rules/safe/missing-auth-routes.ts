@@ -1,4 +1,5 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const ROUTE_FILE_RE = /(^|\/)app\/api\/(.+\/)?route\.(ts|tsx|js|jsx)$/;
 const HANDLER_EXPORT_RE = /export\s+(?:async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/;
@@ -38,6 +39,7 @@ export const missingAuthRoutesRule: Rule = {
 
     for (const file of ctx.files) {
       if (!ROUTE_FILE_RE.test(file.relPath)) continue;
+      if (isNonProductionPath(file.relPath)) continue;
       if (AUTH_FLOW_PATH_RE.test(file.relPath)) continue;
 
       const handlers = [...file.content.matchAll(HANDLER_EXPORT_GLOBAL_RE)].map((m) => m[1]);

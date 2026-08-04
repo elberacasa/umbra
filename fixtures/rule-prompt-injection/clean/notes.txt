@@ -1,0 +1,3 @@
+Prompt injection is a real threat class. Attackers try to hide instructions
+where humans do not look, so educational docs discuss the technique openly.
+This file explains the concept without directing any agent to do anything.

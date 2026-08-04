@@ -4,9 +4,12 @@ import { guardContent } from '../../src/guard/guard';
 
 describe('guardContent — content rules', () => {
   it('blocks a hardcoded live secret (critical/high at high confidence)', async () => {
+    // A decodable service_role JWT stands in for a live key: it blocks at
+    // critical/high, and (unlike sk_live_*) the fixture string is safe to
+    // commit — GitHub push protection does not pattern-match it.
     const verdict = await guardContent(
       'src/billing.ts',
-      "const stripe = new Stripe('sk_live_4eC39HqLyjWDarjtT1zdp7dc');\n",
+      "const client = createClient(url, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8iLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjE2MTY5MjAwLCJleHAiOjE5MzE4NDUyMDB9.fakeSignatureForFixtureOnly1234567890');\n",
     );
     expect(verdict.decision).toBe('block');
     expect(verdict.findings.some((f) => f.ruleId === 'safe/hardcoded-secrets')).toBe(true);

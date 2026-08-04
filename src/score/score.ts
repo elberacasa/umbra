@@ -1,7 +1,7 @@
 import type { Axis, Confidence, Finding, Severity } from '../engine/types.js';
 import type { AxisReport } from '../axes/types.js';
 
-export const RUBRIC_VERSION = 3;
+export const RUBRIC_VERSION = 4;
 
 /**
  * Per-rule deduction ceiling: a single ruleId can deduct at most this many
@@ -25,7 +25,7 @@ export const CONFIDENCE_MULTIPLIER: Record<Exclude<Confidence, 'low'>, number> =
   medium: 0.5,
 };
 
-/** Full rubric v3 weights. RUNS and HONEST join the total only when measured (--deep). */
+/** Full rubric weights. RUNS and HONEST join the total only when measured (--deep). */
 export const AXIS_WEIGHTS: Record<Axis, number> = {
   SAFE: 0.35,
   RUNS: 0.25,

@@ -1,4 +1,4 @@
-const STRIPE_KEY = "sk_live_4eC39HqLyjWDarjtT1zdp7dc";
+const STRIPE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8iLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjE2MTY5MjAwLCJleHAiOjE5MzE4NDUyMDB9.fakeSignatureForFixtureOnly1234567890";
 
 export function stripeKey(): string {
   return STRIPE_KEY;

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { execute } from '../../src/cli';
 import { copyFixture } from './helpers';
 
-const SECRET = 'sk_live_4eC39HqLyjWDarjtT1zdp7dc';
+const SECRET = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8iLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjE2MTY5MjAwLCJleHAiOjE5MzE4NDUyMDB9.fakeSignatureForFixtureOnly1234567890';
 
 describe('--fix end to end', () => {
   it('applies the safe fixes and the after-score is strictly higher', async () => {

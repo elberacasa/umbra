@@ -12,3 +12,12 @@ const NON_PRODUCTION_DIR_RE =
 export function isNonProductionPath(relPath: string): boolean {
   return NON_PRODUCTION_FILE_RE.test(relPath) || NON_PRODUCTION_DIR_RE.test(relPath);
 }
+
+/**
+ * True when the path sits under a non-production directory. Rules with an
+ * agent-config carve-out (prompt-injection) still suppress these: a fixture
+ * payload shaped like `.cursor/rules/x.mdc` is test data, not config.
+ */
+export function isNonProductionDir(relPath: string): boolean {
+  return NON_PRODUCTION_DIR_RE.test(relPath);
+}

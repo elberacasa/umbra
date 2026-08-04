@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { Finding, Rule, Severity, Confidence } from '../../engine/types.js';
+import { isNonProductionDir, isNonProductionPath } from '../context.js';
 
 // The engine walker only surfaces text files, so committed artifacts such as
 // *.pem, id_rsa, *.sqlite or a nested .git/config never reach ctx.files.
@@ -99,11 +100,15 @@ export const exposedSensitiveFilesRule: Rule = {
             continue;
           }
           if (SKIP_DIRS.has(entry.name)) continue;
+          // Fixture/test/docs trees are not production attack surface — a
+          // dummy key in a fixture is a payload, not an exposure.
+          if (isNonProductionDir(rel)) continue;
           await visit(abs, rel, depth + 1);
           continue;
         }
 
         if (!entry.isFile()) continue;
+        if (isNonProductionPath(rel)) continue;
         const lower = entry.name.toLowerCase();
 
         if (/^id_(?:rsa|dsa|ecdsa|ed25519)$/.test(lower)) {

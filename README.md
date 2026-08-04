@@ -19,7 +19,7 @@ claimed. One command, fully local, evidence for every finding.
 [![MCP registry: listed](https://img.shields.io/badge/MCP_registry-listed-00f0ff)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.elberacasa/umbra)
 [![license: MIT](https://img.shields.io/npm/l/@elberacasa/umbra)](./LICENSE)
 [![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
-[![rubric v3](https://img.shields.io/badge/rubric-v3-b829f7)](./RUBRIC.md)
+[![rubric v4](https://img.shields.io/badge/rubric-v4-b829f7)](./RUBRIC.md)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 
 [Quickstart](#quickstart) · [Demo](#demo) · [The Audit](#the-audit-61-vibe-coded-repos-scanned) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing)
@@ -76,7 +76,7 @@ Mean trust score: **74/100**. One in five repos fails outright. The full
 report has per-class deep dives with representative snippets and fixes, the
 complete per-repo table, and an honest methodology section — including the
 false positives we found in our own rules while running it, and fixed
-(rubric v3).
+(rubric v4).
 
 ## Quickstart
 
@@ -109,7 +109,7 @@ CLEAN  ✅ 87/100 — 10 findings
 RUNS   — not measured — run with --deep
 HONEST — not measured — run with --deep
 
-Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v3.
+Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v4.
 …plus 8 further findings beyond the per-rule cap (see report)
 
 Top findings:
@@ -222,7 +222,7 @@ CLEAN  ✅ 100/100 — 2 findings
 RUNS   — not measured — No detectable run path (no Dockerfile, no package.json start script or main entry)
 HONEST ⚠️ 50/100 — 2 claims failed, 2 verified, 1 unverifiable
 
-Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v3.
+Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v4.
 Score capped below passing: a documented claim was verified false. Trust is the product.
 
 Claim receipts:

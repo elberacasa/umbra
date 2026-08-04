@@ -1,5 +1,6 @@
 import type { Finding, Rule } from '../../engine/types.js';
 import { isNonProductionPath } from '../context.js';
+import { downgradeConfidence, maskCommentsAndRegex, maskNonCode } from '../text.js';
 
 const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const CONFIG_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml)$/;
@@ -30,13 +31,23 @@ export const corsWildcardRule: Rule = {
       if (!CONFIG_FILE_RE.test(file.relPath)) continue;
       if (isNonProductionPath(file.relPath)) continue;
 
+      // Header names and origin values live inside string literals, so those
+      // patterns match text with only comments and regex source masked. The
+      // bare cors() call is code — match it against fully masked text so
+      // prose like "bare cors() in apps with auth" cannot fire.
+      const isCodeFile = CODE_FILE_RE.test(file.relPath);
+      const text = maskCommentsAndRegex(file.content);
+      const code = isCodeFile ? maskNonCode(file.content) : undefined;
+      const textLines = text.text.split('\n');
+      const codeLines = code?.text.split('\n');
+
       let wildcardLine = -1;
       let hasCredentials = false;
       let hasAuthHeaders = false;
       let bareCorsLine = -1;
 
       for (let i = 0; i < file.lines.length; i++) {
-        const line = file.lines[i];
+        const line = textLines[i];
         if (line === undefined) continue;
 
         if (wildcardLine === -1 && (WILDCARD_ORIGIN_RE.test(line) || ORIGIN_OPTION_RE.test(line))) {
@@ -44,7 +55,8 @@ export const corsWildcardRule: Rule = {
         }
         if (!hasCredentials && CREDENTIALS_RE.test(line)) hasCredentials = true;
         if (!hasAuthHeaders && AUTH_HEADERS_RE.test(line)) hasAuthHeaders = true;
-        if (bareCorsLine === -1 && CODE_FILE_RE.test(file.relPath) && BARE_CORS_RE.test(line)) {
+        const codeLine = codeLines?.[i];
+        if (bareCorsLine === -1 && codeLine !== undefined && BARE_CORS_RE.test(codeLine)) {
           bareCorsLine = i + 1;
         }
       }
@@ -54,7 +66,7 @@ export const corsWildcardRule: Rule = {
           ruleId: this.id,
           axis: this.axis,
           severity: 'high',
-          confidence: 'high',
+          confidence: text.complete ? 'high' : downgradeConfidence('high'),
           message:
             'Wildcard CORS origin (*) combined with credentials — any website can make authenticated cross-origin requests',
           file: file.relPath,
@@ -65,7 +77,7 @@ export const corsWildcardRule: Rule = {
           ruleId: this.id,
           axis: this.axis,
           severity: 'medium',
-          confidence: 'medium',
+          confidence: text.complete ? 'medium' : downgradeConfidence('medium'),
           message:
             'Wildcard CORS origin (*) while allowing the Authorization header — any website can call this API with bearer tokens',
           file: file.relPath,
@@ -78,7 +90,7 @@ export const corsWildcardRule: Rule = {
           ruleId: this.id,
           axis: this.axis,
           severity: 'medium',
-          confidence: 'medium',
+          confidence: code !== undefined && code.complete ? 'medium' : downgradeConfidence('medium'),
           message:
             'cors() with no options reflects any origin — this app has auth routes, so restrict origins explicitly',
           file: file.relPath,

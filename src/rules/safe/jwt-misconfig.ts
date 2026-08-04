@@ -1,5 +1,6 @@
 import type { Finding, Rule } from '../../engine/types.js';
 import { isNonProductionPath } from '../context.js';
+import { downgradeConfidence, maskNonCode } from '../text.js';
 
 const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const JWT_LIB_RE = /from\s+['"]jsonwebtoken['"]|require\(\s*['"]jsonwebtoken['"]\s*\)/;
@@ -47,18 +48,28 @@ export const jwtMisconfigRule: Rule = {
       if (isNonProductionPath(file.relPath)) continue;
       if (!JWT_LIB_RE.test(file.content)) continue;
 
+      // Match on comment/string/regex-masked text so a rule description or
+      // doc comment mentioning jwt.verify( cannot fire. Masking preserves
+      // length and newlines, so indices line up with the raw content for
+      // call extraction and line numbers.
+      const masked = maskNonCode(file.content);
+      const code = masked.text;
+      const codeLines = code.split('\n');
+      const confidence = (c: 'high' | 'medium'): 'high' | 'medium' | 'low' =>
+        masked.complete ? c : downgradeConfidence(c);
+
       VERIFY_RE.lastIndex = 0;
       let verifyMatch: RegExpExecArray | null;
-      while ((verifyMatch = VERIFY_RE.exec(file.content)) !== null) {
+      while ((verifyMatch = VERIFY_RE.exec(code)) !== null) {
         const call = extractCall(file.content, verifyMatch.index + verifyMatch[0].length - 1);
-        const line = lineOf(file.content, verifyMatch.index);
+        const line = lineOf(code, verifyMatch.index);
         const algorithmsMatch = /algorithms\s*:\s*\[([^\]]*)\]/.exec(call);
         if (algorithmsMatch && /['"]none['"]/i.test(algorithmsMatch[1] ?? '')) {
           findings.push({
             ruleId: this.id,
             axis: this.axis,
             severity: 'critical',
-            confidence: 'high',
+            confidence: confidence('high'),
             message:
               'jwt.verify accepts alg "none" — attackers can forge unsigned tokens and bypass authentication',
             file: file.relPath,
@@ -69,7 +80,7 @@ export const jwtMisconfigRule: Rule = {
             ruleId: this.id,
             axis: this.axis,
             severity: 'high',
-            confidence: 'medium',
+            confidence: confidence('medium'),
             message:
               'jwt.verify without an algorithms allowlist — tokens signed with unexpected algorithms may be accepted',
             file: file.relPath,
@@ -80,28 +91,28 @@ export const jwtMisconfigRule: Rule = {
 
       SIGN_RE.lastIndex = 0;
       let signMatch: RegExpExecArray | null;
-      while ((signMatch = SIGN_RE.exec(file.content)) !== null) {
+      while ((signMatch = SIGN_RE.exec(code)) !== null) {
         const call = extractCall(file.content, signMatch.index + signMatch[0].length - 1);
         if (!/expiresIn\b|\bexp\b\s*:/.test(call)) {
           findings.push({
             ruleId: this.id,
             axis: this.axis,
             severity: 'medium',
-            confidence: 'medium',
+            confidence: confidence('medium'),
             message: 'jwt.sign without expiresIn — tokens never expire and remain valid forever if leaked',
             file: file.relPath,
-            line: lineOf(file.content, signMatch.index),
+            line: lineOf(code, signMatch.index),
           });
         }
       }
 
-      for (let i = 0; i < file.lines.length; i++) {
-        const line = file.lines[i];
+      for (let i = 0; i < codeLines.length; i++) {
+        const line = codeLines[i];
         if (line === undefined || !DECODE_RE.test(line)) continue;
 
         const assignMatch = /(\w+)\s*=\s*(?:await\s+)?jwt\.decode\s*\(/.exec(line);
         const variable = assignMatch?.[1];
-        const windowLines = file.lines.slice(i, i + 8);
+        const windowLines = codeLines.slice(i, i + 8);
 
         let usedForAuthz = false;
         if (variable === undefined) {
@@ -116,7 +127,11 @@ export const jwtMisconfigRule: Rule = {
           ruleId: this.id,
           axis: this.axis,
           severity: usedForAuthz ? 'high' : 'low',
-          confidence: usedForAuthz ? 'high' : 'low',
+          confidence: masked.complete
+            ? usedForAuthz
+              ? 'high'
+              : 'low'
+            : downgradeConfidence(usedForAuthz ? 'high' : 'low'),
           message: usedForAuthz
             ? 'jwt.decode() result drives an authorization decision — decode does not verify the signature, so forged tokens pass'
             : 'jwt.decode() does not verify the token signature — confirm it is never used for authorization',

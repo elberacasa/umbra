@@ -99,6 +99,22 @@ function decodeJwtPayload(token: string): DecodedJwt | null {
 const ENV_EXEMPT = new Set(['.env.example', '.env.sample', '.env.template']);
 
 /**
+ * Canonical documentation example values: keys that appear in the official
+ * docs of their provider and were therefore copy-pasted into thousands of
+ * legitimate repos (including this project's own fixtures). They are not real
+ * credentials, so they are suppressed in production paths. Under
+ * non-production paths they still fire — at the live-key exception's medium
+ * confidence — because fixtures and tests use them as stand-ins for real
+ * payloads, and a scanner that never fires on them there cannot be tested
+ * with them.
+ */
+const DOC_EXAMPLE_VALUES = new Set([
+  'sk_live_4eC39HqLyjWDarjtT1zdp7dc', // Stripe docs example key
+  'AKIAIOSFODNN7EXAMPLE', // AWS docs example access key ID
+  'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', // AWS docs example secret key
+]);
+
+/**
  * Obviously-real live keys. In non-production paths (tests, fixtures, docs)
  * placeholder credentials are suppressed entirely — but a leaked LIVE key in
  * a test file is a real breach class, so these still fire, at medium
@@ -139,18 +155,23 @@ export const hardcodedSecretsRule: Rule = {
         for (let i = 0; i < file.lines.length; i++) {
           const line = file.lines[i];
           if (line === undefined) continue;
-          if (pattern.re.test(line)) {
-            findings.push({
-              ruleId: this.id,
-              axis: this.axis,
-              severity: pattern.severity,
-              confidence: nonProduction ? 'medium' : pattern.confidence,
-              message: `Hardcoded ${pattern.name} in source`,
-              file: file.relPath,
-              line: i + 1,
-            });
-            break; // one finding per pattern per file
-          }
+          const match = pattern.re.exec(line);
+          if (match === null) continue;
+          // A documentation example value is not a leaked key in production
+          // code — skip it and keep scanning the file for real ones. In
+          // non-production paths it still fires (medium confidence, per the
+          // live-key exception above).
+          if (!nonProduction && DOC_EXAMPLE_VALUES.has(match[1] ?? match[0])) continue;
+          findings.push({
+            ruleId: this.id,
+            axis: this.axis,
+            severity: pattern.severity,
+            confidence: nonProduction ? 'medium' : pattern.confidence,
+            message: `Hardcoded ${pattern.name} in source`,
+            file: file.relPath,
+            line: i + 1,
+          });
+          break; // one finding per pattern per file
         }
       }
 

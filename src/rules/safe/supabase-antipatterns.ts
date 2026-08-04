@@ -1,4 +1,5 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const SERVICE_ROLE_KEY_RE = /SUPABASE_SERVICE_ROLE_KEY|service_role/;
 
@@ -28,6 +29,7 @@ export const supabaseAntipatternsRule: Rule = {
 
     // 1. service_role key exposure
     for (const file of ctx.files) {
+      if (isNonProductionPath(file.relPath)) continue;
       if (!SERVICE_ROLE_KEY_RE.test(file.content)) continue;
       const clientSide = isClientSidePath(file.relPath) || hasUseClientDirective(file.content);
       const publicEnv = /NEXT_PUBLIC_[A-Z0-9_]*SERVICE|PUBLIC_[A-Z0-9_]*SERVICE/i.test(file.content);
@@ -54,6 +56,7 @@ export const supabaseAntipatternsRule: Rule = {
 
     if (!hasRlsPolicy) {
       for (const file of ctx.files) {
+        if (isNonProductionPath(file.relPath)) continue;
         if (!file.content.includes('@supabase/supabase-js')) continue;
         const fromIndex = file.lines.findIndex((l) => /\.from\(\s*['"]/.test(l));
         if (fromIndex < 0) continue;

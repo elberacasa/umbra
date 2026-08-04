@@ -42,7 +42,7 @@ describe('umbra MCP server', () => {
     });
     expect(result.isError).toBeFalsy();
     const report = JSON.parse(textOf(result as CallToolResult)) as JsonReport;
-    expect(report.rubricVersion).toBe(3);
+    expect(report.rubricVersion).toBe(4);
     expect(report.score).toBeLessThan(50);
     expect(report.measuredAxes).toEqual(['SAFE', 'CLEAN']);
     expect(report.findings.length).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ describe('umbra MCP server', () => {
       findingCount: number;
     };
     expect(payload.score).toBe(100);
-    expect(payload.rubricVersion).toBe(3);
+    expect(payload.rubricVersion).toBe(4);
     expect(payload.measuredAxes).toEqual(['SAFE', 'CLEAN']);
     expect(payload.unmeasuredAxes).toEqual(['RUNS', 'HONEST']);
     expect(payload.findingCount).toBe(0);

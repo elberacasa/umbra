@@ -73,6 +73,28 @@ describe('safe/exposed-sensitive-files', () => {
     }
   });
 
+  it('suppresses sensitive-looking files under fixtures/tests/docs directories', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'umbra-exposed-np-'));
+    try {
+      await fs.mkdir(path.join(root, 'fixtures', 'keys'), { recursive: true });
+      await fs.writeFile(path.join(root, 'fixtures', 'keys', 'id_rsa'), 'fake key payload\n');
+      await fs.mkdir(path.join(root, 'tests'), { recursive: true });
+      await fs.writeFile(
+        path.join(root, 'tests', 'dummy.pem'),
+        '-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----\n',
+      );
+      await fs.writeFile(path.join(root, 'index.ts'), 'export {};\n');
+      const findings = await exposedSensitiveFilesRule.check({
+        root,
+        files: [],
+        options: {},
+      });
+      expect(findings).toEqual([]);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('finds nothing in the clean fixture', async () => {
     const findings = await checkFixture('rule-exposed-files/clean', [exposedSensitiveFilesRule]);
     expect(findings).toEqual([]);

@@ -30,7 +30,7 @@ const TEXT_EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
   '.json', '.jsonc',
   '.sql',
-  '.md', '.mdx', '.txt',
+  '.md', '.mdx', '.mdc', '.txt',
   '.yml', '.yaml', '.toml', '.ini',
   '.css', '.scss', '.html', '.htm',
   '.env', '.sh', '.py', '.rb', '.go', '.rs',
@@ -41,7 +41,7 @@ const MAX_FILE_BYTES = 512 * 1024;
 function isTextCandidate(name: string): boolean {
   const base = path.basename(name);
   if (base.startsWith('.env')) return true;
-  const dotfiles = ['.npmrc', '.nvmrc', '.eslintrc', '.prettierrc', '.gitconfig'];
+  const dotfiles = ['.npmrc', '.nvmrc', '.eslintrc', '.prettierrc', '.gitconfig', '.cursorrules'];
   if (dotfiles.includes(base)) return true;
   return TEXT_EXTENSIONS.has(path.extname(base).toLowerCase());
 }

@@ -10,6 +10,8 @@ import { jwtMisconfigRule } from './safe/jwt-misconfig.js';
 import { debugFlagsRule } from './safe/debug-flags.js';
 import { exposedSensitiveFilesRule } from './safe/exposed-sensitive-files.js';
 import { defaultCredentialsRule } from './safe/default-credentials.js';
+import { promptInjectionRule } from './safe/prompt-injection.js';
+import { mcpConfigRule } from './safe/mcp-config.js';
 import { deadExportsRule } from './clean/dead-exports.js';
 import { unusedDepsRule } from './clean/unused-deps.js';
 import { largeFilesRule } from './clean/large-files.js';
@@ -27,6 +29,8 @@ export const allRules: Rule[] = [
   { ...corsWildcardRule, scope: 'file' },
   { ...debugFlagsRule, scope: 'file' },
   { ...defaultCredentialsRule, scope: 'file' },
+  { ...promptInjectionRule, scope: 'file' },
+  { ...mcpConfigRule, scope: 'file' },
   { ...supabaseAntipatternsRule, scope: 'repo' },
   { ...missingAuthRoutesRule, scope: 'repo' },
   { ...missingRateLimitRule, scope: 'repo' },

@@ -1,5 +1,6 @@
 import type { Finding, Rule } from '../../engine/types.js';
 import { isNonProductionPath } from '../context.js';
+import { maskCommentsAndRegex } from '../text.js';
 
 const SCANNED_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml|sql|sh|py|rb|env)$/;
 const ENV_TEMPLATE_RE = /^\.env\.(example|sample|template)$/;
@@ -44,11 +45,17 @@ export const defaultCredentialsRule: Rule = {
       if (ENV_TEMPLATE_RE.test(base)) continue;
 
       const inSeedOrConfig = SEED_CONFIG_PATH_RE.test(file.relPath);
+      // Match with comments and regex source masked so prose about default
+      // credentials cannot fire; string contents stay visible because the
+      // credential values themselves live inside string literals.
+      const textLines = isEnvFile
+        ? file.lines
+        : maskCommentsAndRegex(file.content).text.split('\n');
       let passwordReported = false;
       let connReported = false;
 
-      for (let i = 0; i < file.lines.length; i++) {
-        const line = file.lines[i];
+      for (let i = 0; i < textLines.length; i++) {
+        const line = textLines[i];
         if (line === undefined) continue;
 
         if (!passwordReported) {

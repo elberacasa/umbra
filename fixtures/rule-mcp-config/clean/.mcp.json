@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "pinned": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@1.2.3"],
+      "env": {
+        "API_KEY": "${MCP_API_KEY}"
+      }
+    },
+    "no-autoyes": {
+      "command": "npx",
+      "args": ["some-mcp-server"]
+    }
+  }
+}

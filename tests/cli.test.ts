@@ -30,7 +30,7 @@ describe('CLI smoke', () => {
       scanOptions: { resolvePackage: stubResolver },
     });
     const report = JSON.parse(output) as JsonReport;
-    expect(report.rubricVersion).toBe(3);
+    expect(report.rubricVersion).toBe(4);
     expect(report.score).toBeGreaterThanOrEqual(0);
     expect(report.score).toBeLessThan(50);
     expect(report.measuredAxes).toEqual(['SAFE', 'CLEAN']);
