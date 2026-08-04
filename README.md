@@ -100,24 +100,24 @@ Real output, scanning a typical vibe-coded Next.js app
 ([fixtures/bad-app](./fixtures/bad-app) in this repo, Trust Score **30/100**):
 
 ```
-$ npx @elberacasa/umbra ./fixtures/bad-app
+$ npx umbra-scan ./fixtures/bad-app
 
 UMBRA TRUST SCORE: 30/100  🔴
 
-SAFE   🔴 5/100 — 15 findings
+SAFE   🔴 5/100 — 14 findings
 CLEAN  ✅ 87/100 — 10 findings
 RUNS   — not measured — run with --deep
 HONEST — not measured — run with --deep
 
 Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v4.
-…plus 8 further findings beyond the per-rule cap (see report)
+…plus 7 further findings beyond the per-rule cap (see report)
 
 Top findings:
-  [safe/hardcoded-secrets] Hardcoded Stripe live secret key in source — .env:3
   [safe/hardcoded-secrets] Hardcoded Supabase service_role JWT — bypasses all row level security — .env:2
   [safe/hardcoded-secrets] Hardcoded Supabase service_role JWT — bypasses all row level security — lib/supabase.ts:5
   [safe/supabase-antipatterns] Supabase service_role key reachable from client-side code — full database bypass for anyone who opens the bundle — .env:2
   [safe/supabase-antipatterns] Supabase service_role key reachable from client-side code — full database bypass for anyone who opens the bundle — app/components/UserList.tsx:10
+  [safe/hardcoded-secrets] Committed environment file with secret values: .env — .env:1
 
 Notes (low confidence — not scored):
   [safe/missing-rate-limit] Auth endpoint with no rate-limiting signal in the repo — brute-force / credential-stuffing exposure (heuristic) — app/api/login/route.ts:3
@@ -155,7 +155,7 @@ alias. Same engine either way.
 ```
 repo in
    │
-   ▼  Layer 0 · static rules (15 SAFE + CLEAN rules, 0 tokens, <1s)
+   ▼  Layer 0 · static rules (17 SAFE + CLEAN rules, 0 tokens, <1s)
    ▼  Layer 1 · evidence gating (confidence-scored, low never moves the score)
    ▼  Layer 2 · --deep sandbox (Docker: build, boot, HTTP probe, claim replay)
    │
@@ -241,7 +241,7 @@ get a passing trust score. For contrast, a genuinely working app
 
 | Axis | Question | How it's measured |
 |------|----------|-------------------|
-| **SAFE** (35%) | Is it vulnerable? | 15 deterministic static rules, every scan, fully offline. |
+| **SAFE** (35%) | Is it vulnerable? | 17 deterministic static rules, every scan, fully offline. |
 | **RUNS** (25%) | Does it actually build and boot? | Docker sandbox: install, build, start, HTTP probe. *(`--deep`)* |
 | **HONEST** (25%) | Is the agent lying about tests or the build? | Claims extracted from READMEs and agent files, replayed against sandbox reality, receipts emitted. *(`--deep`)* |
 | **CLEAN** (15%) | How much is slop? | Static rules: dead exports, unused deps, mega-files, duplication. |
@@ -254,6 +254,13 @@ typosquatted dependencies, CORS wildcard with credentials, JWT misconfig
 (`alg: none`, no expiry, decode-as-authorization), debug flags and
 stack-trace leaks, committed sensitive files (`.pem`, `id_rsa`, SQL dumps),
 and default credentials.
+
+It also lints the agent's own setup — the surface nobody else covers:
+prompt-injection payloads in instruction files (`CLAUDE.md`, `.cursor/rules`,
+skills: zero-width Unicode, override phrases in HTML comments) and dangerous
+MCP configs (literal API keys in `.mcp.json`, unpinned `npx -y` servers,
+`curl | sh` installers). These run in the guard too, so an agent editing its
+own config gets checked mid-write.
 
 ## Umbra vs. existing tools
 
