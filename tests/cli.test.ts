@@ -80,6 +80,8 @@ describe('CLI smoke', () => {
     }
     expect(stdout).toMatch(/UMBRA TRUST SCORE: \d+\/100/);
     expect(code).toBe(1);
+    // The star nudge is TTY-only: piped/CI output must stay machine-clean.
+    expect(stdout).not.toContain('Star Umbra');
   });
 
   it('defaults to the current directory when no path is given', async () => {

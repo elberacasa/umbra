@@ -13,6 +13,7 @@ coding security scanner that verifies what your agent shipped, not what it
 claimed. One command, fully local, evidence for every finding.
 
 [![npm version](https://img.shields.io/npm/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
+[![GitHub stars](https://img.shields.io/github/stars/elberacasa/umbra)](https://github.com/elberacasa/umbra/stargazers)
 [![license: MIT](https://img.shields.io/npm/l/@elberacasa/umbra)](./LICENSE)
 [![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
@@ -313,14 +314,10 @@ Windsurf scan their own work before declaring a task done.
 
 ## Contributing
 
-Issues and PRs welcome. The highest-value contributions right now:
-
-- New SAFE/CLEAN rules with real evidence (file:line, no heuristics that
-  can't point at code). Every rule needs a fixture and a test.
-- False-positive reports. A phantom finding in a viral screenshot is fatal,
-  so these are treated as severity-one bugs.
-- Renders of Umbra against real AI-generated repos. If it scored your repo
-  wrong, that's a bug report we want.
+Issues and PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md). The
+highest-value contributions right now: new SAFE/CLEAN rules with fixtures and
+tests, false-positive reports (severity-one bugs here), renders against real
+AI-generated repos, and new harness adapters for `umbra protect`.
 
 Build and test before submitting:
 

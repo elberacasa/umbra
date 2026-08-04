@@ -3,6 +3,7 @@ import path from 'node:path';
 import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { Command } from 'commander';
+import pc from 'picocolors';
 import { runScan } from './engine/runner.js';
 import type { ScanOptions } from './engine/types.js';
 import { allRules } from './rules/index.js';
@@ -78,6 +79,11 @@ async function main(argv: string[]): Promise<number> {
       try {
         const result = await execute(target, opts);
         console.log(result.output);
+        // The star line: one dim line, interactive terminals only. Never in
+        // CI logs, pipes, or --json output — a guardrail tool earns its ask.
+        if (opts.json !== true && process.stdout.isTTY === true) {
+          console.log(pc.dim('Useful? Star Umbra: https://github.com/elberacasa/umbra'));
+        }
         process.exitCode = result.exitCode;
       } catch (error) {
         console.error(`umbra: scan failed — ${error instanceof Error ? error.message : String(error)}`);
