@@ -2,6 +2,8 @@
 
 We ran [Umbra](https://github.com/elberacasa/umbra) (rubric v3) over **61 public, actively-maintained repositories built with AI coding tools** (Lovable, Bolt, v0, Cursor, and similar, found via GitHub keyword search; forks excluded). Every scan was fully automated and reproducible: `npx umbra-scan <repo> --json`.
 
+> **The 60-second version:** one in four repos had a hardcoded-secret finding. One in four exposed API routes with no auth check. Half had injection sinks. 13% committed entire database files or SQL dumps. And 7 repos out of 61 were genuinely clean — proof the tooling generation can ship safe code when someone verifies it.
+
 ## Headline numbers
 
 | Metric | Value |
@@ -33,6 +35,57 @@ We ran [Umbra](https://github.com/elberacasa/umbra) (rubric v3) over **61 public
 | `safe/supabase-antipatterns` | 4 | 7% |
 | `safe/debug-flags` | 4 | 7% |
 | `safe/jwt-misconfig` | 1 | 2% |
+
+## The findings that matter, explained
+
+Raw counts understate it. These are the six patterns doing the real damage, reconstructed from what the scans actually found. Snippets are representative rewrites of the observed patterns — we do not publish any repo's vulnerable code verbatim, and never the location of a real secret.
+
+### 1. Committed `.env` files with live-format secrets — 25% of repos
+
+```
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIs...   # committed to git
+```
+28 critical findings across 15 repos: private key material in source, committed `.env` / `.env.prod` files, Supabase `service_role` JWTs sitting in the repo tree. A service_role key bypasses row level security entirely — it is the database root password, and agents write it into whatever file the quickstart tutorial mentioned. This is the exact failure behind 2026's Moltbook exposure (millions of API keys in an open database). **Fix:** secrets live in untracked env files or a secret manager, never in git; anything already committed is rotated, not deleted.
+
+### 2. API routes with no auth at all — 26% of repos
+
+```ts
+export async function POST(req: Request) {
+  const { videoUrl } = await req.json();
+  return Response.json(await transcribe(videoUrl)); // anyone on the internet
+}
+```
+156 findings. The pattern we kept seeing: AI apps expose compute-expensive endpoints — transcribe, process, upload, generate — as open routes. No auth import, no session check, nothing. Two ways this hurts: strangers run up your AI-provider bill (a cost attack measured in dollars per hour), and endpoints touching user data become public read/write. This is the bug class that kept a critical hole open on a $6.6B vibe-coding platform for 48 days this spring. **Fix:** every route starts with an auth check that returns 401 before touching data.
+
+### 3. Injection sinks — 49% of repos
+
+```ts
+db.query(`SELECT * FROM users WHERE id = ${userId}`);        // SQL injection
+element.innerHTML = dangerouslySetInnerHTML(themeCode);      // stored XSS
+```
+246 findings across half the sample: SQL built by string interpolation and `dangerouslySetInnerHTML` rendering dynamic values. Agents reach for these because they are the shortest path to a working demo — the training data is full of tutorials that concatenate. **Fix:** parameterized queries everywhere; sanitize before any HTML injection.
+
+### 4. Entire databases committed to git — 13% of repos
+
+Committed `app.db` SQLite files, `.bak` backups, and SQL dumps with names like `023_add_2fa_backup_codes.sql`. 64 critical findings. A committed SQLite file is the whole production database in git history — users, sessions, everything — and deleting it from HEAD does not remove it from history. **Fix:** purge from history, rotate whatever it contained, gitignore the pattern.
+
+### 5. CORS wildcard with credentials — 21% of repos
+
+```ts
+app.use(cors({ origin: "*", credentials: true }));
+```
+13 repos. With an auth surface present, this lets any website make authenticated requests as your users from their browsers. It is one line, it comes from a hundred Stack Overflow answers, and agents paste it the moment a preflight error appears during development. **Fix:** an explicit origin allowlist.
+
+### 6. Default credentials in connection strings — 11% of repos
+
+```ts
+const db = connect("postgres://postgres:postgres@db:5432/app");
+```
+7 repos, plus literal passwords like `123456` assigned in config. Fine for a local container, fatal the day someone ships the compose file to a public host. **Fix:** credentials come from the environment, and the default is a startup failure, not `postgres:postgres`.
+
+### Bonus: the slop layer
+
+CLEAN findings are not vulnerabilities, but they tell the story of how this code gets written: duplicated blocks in 64% of repos (agents copy-paste rather than extract a shared function) and 500+-line files in 75% (agents append rather than restructure). 7 repos had zero scored findings at all — clean, safe, and honest. It is possible. It just requires someone — or something — to check.
 
 ## Full results
 

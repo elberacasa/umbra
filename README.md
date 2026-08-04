@@ -13,7 +13,9 @@ coding security scanner that verifies what your agent shipped, not what it
 claimed. One command, fully local, evidence for every finding.
 
 [![npm version](https://img.shields.io/npm/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
+[![npm downloads](https://img.shields.io/npm/dm/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 [![GitHub stars](https://img.shields.io/github/stars/elberacasa/umbra)](https://github.com/elberacasa/umbra/stargazers)
+[![MCP registry](https://img.shields.io/badge/MCP_registry-io.github.elberacasa%2Fumbra-00f0ff)](https://registry.modelcontextprotocol.io)
 [![license: MIT](https://img.shields.io/npm/l/@elberacasa/umbra)](./LICENSE)
 [![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
@@ -56,8 +58,9 @@ passing, with receipts.
 
 We put real numbers behind the claim: [The Vibe-Coding Security Audit](./docs/vibe-coding-audit-2026-08.md)
 ran Umbra over 61 public AI-built repos — one in four had a hardcoded-secret
-finding, one in four had unauthenticated API routes. Full per-repo table and
-methodology inside.
+finding, one in four had unauthenticated API routes, 13% committed entire
+database files. The six most damaging patterns are explained in depth, with
+the full per-repo table and methodology.
 
 ## Quickstart
 
