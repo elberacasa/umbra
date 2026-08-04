@@ -28,16 +28,20 @@ Before you commit, open a PR, or declare a task finished:
 2. **Exit code 1 (score < 50) means you are not done.** Do not commit.
    Do not rationalize. Fix the findings.
 
-3. Fix **SAFE** findings first, then **CLEAN**. A leaked secret is a
+3. Let the tool heal first: run `npx @elberacasa/umbra . --fix`. It applies
+   the provably-safe fixes (unused deps, secret extraction to env vars) and
+   re-scans. Then work the remaining manual list.
+
+4. Fix **SAFE** findings first, then **CLEAN**. A leaked secret is a
    breach; dead code is a smell. Order your work accordingly.
 
-4. For every finding, read the `file:line` evidence and fix the root
+5. For every finding, read the `file:line` evidence and fix the root
    cause. Never suppress, delete, or work around the check to raise the
    score — the score is the point.
 
-5. Re-run the scan after every fix round. Loop until the scan passes.
+6. Re-run the scan after every fix round. Loop until the scan passes.
 
-6. If a finding is genuinely a false positive, leave the code alone and
+7. If a finding is genuinely a false positive, leave the code alone and
    state, in one sentence with the evidence, why it is a false positive.
    Then continue. Low-confidence notes never block.
 

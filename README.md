@@ -82,10 +82,11 @@ false positives we found in our own rules while running it, and fixed
 
 ```bash
 npx umbra-scan            # check — scans the directory you're standing in
+npx umbra-scan --fix      # heal — applies provably-safe fixes, shows the score climbing
 npx umbra-scan --setup    # protect — pre-commit gate, PR checks, agent guardrails
 ```
 
-That's the whole interface. Two commands: one to check, one to protect.
+That's the whole interface. Three verbs: check, heal, protect.
 
 **Using an AI coding agent?** Umbra is built to be driven by agents, not
 just run by humans:
@@ -135,6 +136,8 @@ umbra [path] --json        # machine-readable output
 umbra [path] --offline     # skip npm registry checks, fully local
 umbra [path] --deep        # verify RUNS and HONEST in a Docker sandbox
 umbra [path] --report      # write UMBRA.md: an agent-actionable task list
+umbra [path] --fix         # apply provably-safe fixes and re-scan (score before → after)
+umbra [path] --dry-run     # preview --fix without writing anything
 umbra setup                # install everything (hooks + Action + agent guards)
 umbra init                 # only the pre-commit hook + GitHub Action
 umbra protect              # only the agent PreToolUse hooks (--remove uninstalls)

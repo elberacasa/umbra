@@ -17,6 +17,8 @@ import { runProtect } from './commands/protect.js';
 import { runSetup } from './commands/setup.js';
 import { nextSteps } from './suggest.js';
 import { runGuardPayload } from './guard/hook.js';
+import { applyFixes, formatFixSection } from './fix/index.js';
+import type { FixReport } from './fix/index.js';
 
 export const FAIL_THRESHOLD = 50;
 
@@ -27,6 +29,10 @@ export interface ExecuteOptions {
   deep?: boolean;
   /** Also render the agent-actionable UMBRA.md markdown report. */
   report?: boolean;
+  /** Apply the provably-safe fixes (unused deps, env extraction), then re-scan. */
+  fix?: boolean;
+  /** With --fix (or alone): print what would change, write nothing. */
+  dryRun?: boolean;
   scanOptions?: ScanOptions;
 }
 
@@ -35,6 +41,10 @@ export interface ExecuteResult {
   exitCode: number;
   /** UMBRA.md contents — present only when ExecuteOptions.report is true. */
   markdown?: string;
+  /** Fix outcomes — present only when a fix run happened (--fix/--dry-run). */
+  fixes?: FixReport;
+  /** Total score before fixes were applied — present only on fix runs. */
+  beforeScore?: number;
   /** Contextual next-step hints for interactive runs. */
   suggestions?: string[];
 }
@@ -46,7 +56,7 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
     scanOptions.resolvePackage = async () => 'unknown';
   }
 
-  const scan = await runScan(root, allRules, scanOptions);
+  let scan = await runScan(root, allRules, scanOptions);
 
   let axisReports: AxisReport[] | undefined;
   if (options.deep === true) {
@@ -65,13 +75,31 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
     }
   }
 
-  const score = computeScore(scan.findings, axisReports);
+  let score = computeScore(scan.findings, axisReports);
+
+  // --fix: apply the provably-safe transforms, re-scan, report before/after.
+  // Sandboxed axes (RUNS/HONEST) are not re-measured — fixes only touch
+  // static files, so the pre-fix axis reports still hold.
+  let fixes: FixReport | undefined;
+  let beforeScore: number | undefined;
+  if (options.fix === true || options.dryRun === true) {
+    const dryRun = options.dryRun === true;
+    beforeScore = score.total;
+    fixes = await applyFixes(root, scan.findings, { dryRun });
+    scan = await runScan(root, allRules, scanOptions);
+    score = computeScore(scan.findings, axisReports);
+  }
 
   const output = options.json === true
     ? JSON.stringify(toJsonReport(scan, score, axisReports), null, 2)
-    : formatVerdict(scan, score, axisReports);
+    : formatVerdict(scan, score, axisReports) +
+      (fixes !== undefined && beforeScore !== undefined
+        ? `${formatFixSection(fixes, beforeScore, score.total, options.dryRun === true)}\n`
+        : '');
 
   const result: ExecuteResult = { output, exitCode: score.total < FAIL_THRESHOLD ? 1 : 0 };
+  if (fixes !== undefined) result.fixes = fixes;
+  if (beforeScore !== undefined) result.beforeScore = beforeScore;
   if (options.report === true) {
     result.markdown = toMarkdownReport(scan, score, axisReports);
   }
@@ -89,7 +117,9 @@ async function main(argv: string[]): Promise<number> {
     .option('--offline', 'skip npm registry checks (dependency verification is skipped with a note)')
     .option('--deep', 'also verify RUNS and HONEST in a Docker sandbox (slower, needs Docker)')
     .option('--report', 'write UMBRA.md, an agent-actionable markdown report, into the scanned repo')
-    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean }) => {
+    .option('--fix', 'apply provably-safe fixes (unused deps, hardcoded secrets, default creds), then re-scan')
+    .option('--dry-run', 'with --fix: print what would change without writing anything')
+    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean; fix?: boolean; dryRun?: boolean }) => {
       try {
         const result = await execute(target, opts);
         console.log(result.output);

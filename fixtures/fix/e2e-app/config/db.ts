@@ -1,0 +1,1 @@
+export const DATABASE_URL = "postgres://admin:admin@localhost:5432/app";

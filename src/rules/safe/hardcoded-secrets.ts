@@ -2,14 +2,16 @@ import path from 'node:path';
 import type { Confidence, Finding, Rule, Severity } from '../../engine/types.js';
 import { isNonProductionPath } from '../context.js';
 
-interface SecretPattern {
+export interface SecretPattern {
   name: string;
   re: RegExp;
   severity: Severity;
   confidence: Confidence;
 }
 
-const PATTERNS: SecretPattern[] = [
+// Exported so the --fix env-extraction transform can re-locate the exact
+// literal a finding flagged, instead of maintaining a parallel pattern list.
+export const PATTERNS: SecretPattern[] = [
   {
     name: 'AWS access key ID',
     re: /\b(AKIA[0-9A-Z]{16})\b/,
@@ -72,7 +74,7 @@ const PATTERNS: SecretPattern[] = [
   },
 ];
 
-const JWT_RE = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{5,}\b/;
+export const JWT_RE = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{5,}\b/;
 
 interface DecodedJwt {
   role?: string;

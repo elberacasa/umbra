@@ -19,9 +19,10 @@ const WEAK_LITERALS = [
 ];
 const WEAK_LITERAL_RE = /^(?:admin|password|changeme|change_me|admin123|letmein|welcome1|qwerty|123456|12345678)$/i;
 
-const PASSWORD_ASSIGN_RE = /(?:password|passwd|pwd)["']?\s*[:=]\s*['"]([^'"]+)['"]/i;
+// Exported for the --fix env-extraction transform (see src/fix/fixers/env-extract.ts).
+export const PASSWORD_ASSIGN_RE = /(?:password|passwd|pwd)["']?\s*[:=]\s*['"]([^'"]+)['"]/i;
 const ENV_ASSIGN_RE = /(?:PASSWORD|PASSWD|PWD)\s*=\s*(\S+)\s*$/;
-const CONNECTION_STRING_RE = /:\/\/([A-Za-z0-9_-]{1,32}):([^@\s/'"]{1,64})@/;
+export const CONNECTION_STRING_RE = /:\/\/([A-Za-z0-9_-]{1,32}):([^@\s/'"]{1,64})@/;
 
 function isWeakPair(user: string, password: string): boolean {
   return WEAK_LITERAL_RE.test(password) || user.toLowerCase() === password.toLowerCase();
