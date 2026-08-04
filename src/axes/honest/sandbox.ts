@@ -16,11 +16,22 @@ const HARDENING_ARGS = [
   '--security-opt', 'no-new-privileges',
   '--pids-limit', '256',
   '--read-only',
-  '--tmpfs', '/tmp:rw,nosuid',
+  '--tmpfs', '/tmp:rw,nosuid,mode=1777',
   '-e', 'CI=true',
   '-e', 'npm_config_cache=/tmp/.npm',
   '-e', 'HOME=/tmp',
 ];
+
+// Run the container as the host user. The workdir is a host temp dir (mode
+// 0700, owned by this process) bind-mounted into the container: on rootful
+// Linux docker, container root with --cap-drop ALL has no CAP_DAC_OVERRIDE,
+// so it cannot even chdir into a directory owned by another uid — every
+// command fails with EACCES. Matching the host uid keeps the mount writable.
+// (Docker Desktop maps the container user onto the host user either way, and
+// running untrusted code as non-root is strictly better for the sandbox.)
+const uid = process.getuid?.();
+const gid = process.getgid?.();
+const USER_ARGS = uid === undefined || gid === undefined ? [] : ['-u', `${uid}:${gid}`];
 
 function dockerAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -74,6 +85,7 @@ async function runInSandbox(
     'run',
     '--name', name,
     ...HARDENING_ARGS,
+    ...USER_ARGS,
     '--network', network,
     '-v', `${workDir}:/work`,
     '-w', '/work',
@@ -84,6 +96,19 @@ async function runInSandbox(
 }
 
 const SKIP_COPY_DIRS = new Set(['node_modules', '.git', '.hg', '.svn', '.umbra']);
+
+/** Last non-empty output lines of a failed sandbox command, for diagnostics. */
+function describeFailure(command: string, result: CommandResult): string {
+  const tail = `${result.stdout}\n${result.stderr}`
+    .split('\n')
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim() !== '')
+    .slice(-12)
+    .map((l) => (l.length > 200 ? `${l.slice(0, 200)}…` : l))
+    .join('\n');
+  const outcome = result.timedOut ? 'timed out' : `exit ${result.exitCode}`;
+  return `sandbox command "${command}" ${outcome}${tail ? ` — output tail:\n${tail}` : ''}`;
+}
 
 /**
  * Copies the repo to a temp dir and runs `npm install` (network enabled),
@@ -116,7 +141,7 @@ export async function runDockerSandbox(
 
     const install = await runInSandbox(workDir, installCmd, 'bridge', req.timeoutMs);
     if (install.exitCode !== 0 || install.timedOut) {
-      return { sandboxOk: false, reason: 'install-failed' };
+      return { sandboxOk: false, reason: 'install-failed', detail: describeFailure(installCmd, install) };
     }
 
     const result: SandboxRunResult = { sandboxOk: true };

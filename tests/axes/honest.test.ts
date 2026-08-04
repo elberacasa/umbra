@@ -240,17 +240,19 @@ describe.skipIf(!dockerAvailable)('measureHonest (real Docker sandbox)', () => {
     { timeout: 300_000 },
     async () => {
       const report = await measureHonest(fixturePath('claims-app'));
-      expect(report.status).toBe('fail');
-      expect(report.score).toBe(50);
+      // On failure, narrate why — the details carry the sandbox's output tail.
+      const diag = `\nHONEST details:\n${report.details.join('\n')}`;
+      expect(report.status, diag).toBe('fail');
+      expect(report.score, diag).toBe(50);
 
       const testClaim = report.receipts.find((r) => r.claim.kind === 'test-count');
-      expect(testClaim).toMatchObject({ verdict: 'failed', actual: '3 tests pass, 0 fail' });
+      expect(testClaim, diag).toMatchObject({ verdict: 'failed', actual: '3 tests pass, 0 fail' });
 
       const buildClaim = report.receipts.find((r) => r.claim.kind === 'build');
-      expect(buildClaim).toMatchObject({ verdict: 'failed' });
+      expect(buildClaim, diag).toMatchObject({ verdict: 'failed' });
 
       const allTests = report.receipts.find((r) => r.claim.kind === 'all-tests');
-      expect(allTests).toMatchObject({ verdict: 'verified' });
+      expect(allTests, diag).toMatchObject({ verdict: 'verified' });
     },
   );
 });

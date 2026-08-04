@@ -23,6 +23,8 @@ export interface SandboxRunResult {
   sandboxOk: boolean;
   /** Why the sandbox could not run, when sandboxOk is false. */
   reason?: string;
+  /** Human-readable diagnostics (e.g. a failed command's output tail). */
+  detail?: string;
   test?: CommandResult;
   build?: CommandResult;
 }

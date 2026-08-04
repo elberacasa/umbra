@@ -121,6 +121,7 @@ export async function measureHonest(
           ? 'Dependency install failed inside the sandbox — claims left unverified'
           : 'Sandbox could not run — claims left unverified';
     details.push(why);
+    if (run.detail) details.push(run.detail);
     receipts = verifiable.map((claim) => ({ claim, verdict: 'unverifiable' }));
   } else {
     receipts = verifyClaims(verifiable, run, scripts);

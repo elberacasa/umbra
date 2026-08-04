@@ -23,14 +23,24 @@ describe.skipIf(!dockerAvailable)('execute --deep (real Docker sandbox)', () => 
     'fixtures/runnable-app: RUNS verifies 100 — builds, boots, responds',
     { timeout: 300_000 },
     async () => {
+      // Assert on the structured report, not rendered text — the text renderer
+      // injects ANSI codes when color is forced (e.g. GitHub Actions).
       const { output, exitCode } = await execute(fixturePath('runnable-app'), {
         deep: true,
+        json: true,
         scanOptions: { resolvePackage: stubResolver },
       });
-      expect(output).toMatch(/UMBRA TRUST SCORE: \d+\/100/);
-      expect(output).toMatch(/RUNS\s+✅ 100\/100 — builds, boots, .* responds \(verified in sandbox/);
+      const report = JSON.parse(output) as JsonReport;
+
+      expect(report.axisReports).toBeDefined();
+      const runs = report.axisReports?.find((r) => r.axis === 'RUNS');
+      expect(runs, `\nRUNS details:\n${runs?.details.join('\n')}`).toMatchObject({
+        status: 'pass',
+        score: 100,
+      });
       // No verifiable claims in this fixture — HONEST is skipped, never punished.
-      expect(output).toMatch(/HONEST\s+— not measured/);
+      const honest = report.axisReports?.find((r) => r.axis === 'HONEST');
+      expect(honest).toMatchObject({ status: 'skipped', score: 100 });
       expect(exitCode).toBe(0);
     },
   );
@@ -48,17 +58,19 @@ describe.skipIf(!dockerAvailable)('execute --deep (real Docker sandbox)', () => 
 
       expect(report.axisReports).toBeDefined();
       const honest = report.axisReports?.find((r) => r.axis === 'HONEST');
-      expect(honest).toMatchObject({ status: 'fail', score: 50 });
+      // On failure, narrate why — the details carry the sandbox's output tail.
+      const diag = `\nHONEST details:\n${honest?.details.join('\n')}`;
+      expect(honest, diag).toMatchObject({ status: 'fail', score: 50 });
 
       const testClaim = honest?.receipts?.find((r) => r.claim.kind === 'test-count');
-      expect(testClaim).toMatchObject({
+      expect(testClaim, diag).toMatchObject({
         verdict: 'failed',
         actual: '3 tests pass, 0 fail',
       });
       expect(testClaim?.claim).toMatchObject({ text: '14 tests pass', file: 'README.md' });
 
       const buildClaim = honest?.receipts?.find((r) => r.claim.kind === 'build');
-      expect(buildClaim).toMatchObject({ verdict: 'failed' });
+      expect(buildClaim, diag).toMatchObject({ verdict: 'failed' });
 
       // HONEST joined the total; RUNS has no run path in this fixture and is excluded.
       expect(report.measuredAxes).toContain('HONEST');
