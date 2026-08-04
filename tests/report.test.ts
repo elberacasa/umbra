@@ -12,8 +12,8 @@ describe('markdown report (--report)', () => {
     expect(markdown).toBeDefined();
     const md = markdown as string;
     expect(md).toContain('# Umbra Trust Report');
-    expect(md).toContain('**Trust Score: 24/100**');
-    expect(md).toContain('Rubric v2');
+    expect(md).toContain('**Trust Score: 30/100**');
+    expect(md).toContain('Rubric v3');
     expect(md).toContain('npx umbra-scan --report');
     // The agent loop: task-list instructions plus checkbox findings with fixes.
     expect(md).toContain('## Instructions for AI coding agents');
@@ -21,7 +21,7 @@ describe('markdown report (--report)', () => {
     expect(md).toMatch(/- \[ \] \*\*critical\*\* \(high\) · Hardcoded Stripe live secret key in source — `\.env:3`/);
     expect(md).toContain('Fix: Move the secret into an untracked .env');
     expect(md).toContain('## Notes (low confidence, not scored)');
-    expect(md).toContain('img.shields.io/badge/Umbra_Trust_Score-24-red');
+    expect(md).toContain('img.shields.io/badge/Umbra_Trust_Score-30-red');
   });
 
   it('is omitted unless requested', async () => {
@@ -47,8 +47,8 @@ describe('markdown report (--report)', () => {
       scanOptions: { resolvePackage: stubResolver },
     });
     const md = result.markdown as string;
-    expect(md).toContain('### SAFE — 0/100');
-    expect(md).toContain('### CLEAN — 81/100');
+    expect(md).toContain('### SAFE — 5/100');
+    expect(md).toContain('### CLEAN — 87/100');
     expect(md).toContain('_RUNS, HONEST not measured — run `npx umbra-scan --deep --report`_');
   });
 });

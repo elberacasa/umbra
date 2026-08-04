@@ -1,4 +1,5 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const SQL_KEYWORD_RE = /\b(SELECT|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\b/i;
 
@@ -12,6 +13,9 @@ export const injectionSinksRule: Rule = {
 
     for (const file of ctx.files) {
       if (!/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(file.relPath)) continue;
+      // A SQL string in a test, fixture, script, or prompt template is not a
+      // reachable injection sink.
+      if (isNonProductionPath(file.relPath)) continue;
 
       let sqlReported = false;
       let evalReported = false;

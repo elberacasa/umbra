@@ -43,8 +43,47 @@ describe('score', () => {
   });
 
   it('floors axis scores at 0', () => {
-    const many = Array.from({ length: 10 }, () => finding({ severity: 'critical', confidence: 'high' }));
+    // One rule can deduct at most 25 points, so flooring an axis takes
+    // several distinct rules at their ceilings.
+    const many = ['a', 'b', 'c', 'd'].flatMap((suffix) =>
+      Array.from({ length: 3 }, () => finding({ ruleId: `test/${suffix}`, severity: 'critical', confidence: 'high' })),
+    );
     expect(scoreAxis(many)).toBe(0);
+  });
+
+  it('caps each rule’s deduction at 25 points, highest deductions first', () => {
+    const many = Array.from({ length: 15 }, () => finding({ severity: 'low', confidence: 'high' }));
+    // 15 × 3 points without the cap; with it, 8 × 3 = 24 and the rest deduct nothing.
+    expect(scoreAxis(many)).toBe(76);
+    expect(scoreAxis(many.slice(0, 9))).toBe(76);
+    expect(scoreAxis(many.slice(0, 8))).toBe(76);
+  });
+
+  it('fits smaller findings under the 25-point ceiling, order-independent', () => {
+    const findings = [
+      ...Array.from({ length: 2 }, () => finding({ severity: 'high', confidence: 'high' })), // 15 pts each
+      ...Array.from({ length: 4 }, () => finding({ severity: 'low', confidence: 'high' })), // 3 pts each
+    ];
+    // Sorted: 15, 15, 3, 3, 3, 3 → 15 + 3 + 3 + 3 = 24; the second 15 and last 3 would exceed 25.
+    expect(scoreAxis(findings)).toBe(76);
+    expect(scoreAxis([...findings].reverse())).toBe(76);
+    const shuffled = [...findings.slice(2), ...findings.slice(0, 2)];
+    expect(scoreAxis(shuffled)).toBe(76);
+  });
+
+  it('counts capped findings while still reporting every finding', () => {
+    const findings = Array.from({ length: 13 }, (_, i) =>
+      finding({ axis: 'CLEAN', ruleId: 'clean/large-files', severity: 'low', confidence: 'high', message: `f${i}` }),
+    );
+    const result = computeScore(findings);
+    expect(result.cappedFindings).toBe(5); // 8 × 3 = 24 points scored, 5 beyond the ceiling
+    expect(result.scoredFindings).toHaveLength(13);
+    expect(result.axes.find((a) => a.axis === 'CLEAN')?.score).toBe(76);
+  });
+
+  it('reports zero capped findings when every rule is under the cap', () => {
+    const result = computeScore([finding({}), finding({ ruleId: 'test/other' })]);
+    expect(result.cappedFindings).toBe(0);
   });
 
   it('weighs SAFE 35% and CLEAN 15%, renormalized over measured axes', () => {

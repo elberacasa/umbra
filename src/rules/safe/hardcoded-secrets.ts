@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { Confidence, Finding, Rule, Severity } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 interface SecretPattern {
   name: string;
@@ -95,6 +96,14 @@ function decodeJwtPayload(token: string): DecodedJwt | null {
 
 const ENV_EXEMPT = new Set(['.env.example', '.env.sample', '.env.template']);
 
+/**
+ * Obviously-real live keys. In non-production paths (tests, fixtures, docs)
+ * placeholder credentials are suppressed entirely — but a leaked LIVE key in
+ * a test file is a real breach class, so these still fire, at medium
+ * confidence.
+ */
+const LIVE_KEY_PATTERNS = new Set(['AWS access key ID', 'Stripe live secret key', 'Stripe live restricted key']);
+
 function isCommittedEnvFile(relPath: string): boolean {
   const base = path.basename(relPath);
   return base.startsWith('.env') && !ENV_EXEMPT.has(base) && !base.endsWith('.example');
@@ -109,7 +118,9 @@ export const hardcodedSecretsRule: Rule = {
     const findings: Finding[] = [];
 
     for (const file of ctx.files) {
-      if (isCommittedEnvFile(file.relPath) && /^\s*[A-Z0-9_]+\s*=\s*\S+/m.test(file.content)) {
+      const nonProduction = isNonProductionPath(file.relPath);
+
+      if (!nonProduction && isCommittedEnvFile(file.relPath) && /^\s*[A-Z0-9_]+\s*=\s*\S+/m.test(file.content)) {
         findings.push({
           ruleId: this.id,
           axis: this.axis,
@@ -122,6 +133,7 @@ export const hardcodedSecretsRule: Rule = {
       }
 
       for (const pattern of PATTERNS) {
+        if (nonProduction && !LIVE_KEY_PATTERNS.has(pattern.name)) continue;
         for (let i = 0; i < file.lines.length; i++) {
           const line = file.lines[i];
           if (line === undefined) continue;
@@ -130,7 +142,7 @@ export const hardcodedSecretsRule: Rule = {
               ruleId: this.id,
               axis: this.axis,
               severity: pattern.severity,
-              confidence: pattern.confidence,
+              confidence: nonProduction ? 'medium' : pattern.confidence,
               message: `Hardcoded ${pattern.name} in source`,
               file: file.relPath,
               line: i + 1,
@@ -152,7 +164,7 @@ export const hardcodedSecretsRule: Rule = {
           ruleId: this.id,
           axis: this.axis,
           severity: isServiceRole ? 'critical' : 'high',
-          confidence: 'high',
+          confidence: nonProduction ? 'medium' : 'high',
           message: isServiceRole
             ? 'Hardcoded Supabase service_role JWT — bypasses all row level security'
             : 'Hardcoded JWT in source',

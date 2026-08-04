@@ -16,9 +16,9 @@
 Output demo.gif
 
 Set Shell bash
-Set FontSize 16
+Set FontSize 14
 Set Width 1200
-Set Height 600
+Set Height 760
 Set Padding 24
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
@@ -35,7 +35,7 @@ Enter
 Sleep 1s
 
 # Beat 3 — the one command (0:05–0:08)
-Type "npx --yes @elberacasa/umbra ."
+Type "npx --yes umbra-scan ."
 Sleep 1s
 Enter
 

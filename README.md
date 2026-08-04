@@ -24,7 +24,7 @@ claimed. One command, fully local, evidence for every finding.
 
 <a id="demo"></a>
 
-![Umbra scanning a vibe-coded app: Trust Score 24/100](demo/demo.gif)
+![Umbra scanning a vibe-coded app: Trust Score 30/100](demo/demo.gif)
 
 <!--
   DEMO GIF: recorded from demo/demo.tape via charmbracelet/vhs.
@@ -54,6 +54,11 @@ locked-down Docker sandbox, then replays the agent's own claims against
 reality. If the agent is lying about tests, the score is capped below
 passing, with receipts.
 
+We put real numbers behind the claim: [The Vibe-Coding Security Audit](./docs/vibe-coding-audit-2026-08.md)
+ran Umbra over 61 public AI-built repos — one in four had a hardcoded-secret
+finding, one in four had unauthenticated API routes. Full per-repo table and
+methodology inside.
+
 ## Quickstart
 
 ```bash
@@ -63,19 +68,20 @@ npx umbra-scan   # run inside your project — scans the current directory
 Or point it anywhere: `npx @elberacasa/umbra ./any/path` (same engine, canonical package).
 
 Real output, scanning a typical vibe-coded Next.js app
-([fixtures/bad-app](./fixtures/bad-app) in this repo, Trust Score **24/100**):
+([fixtures/bad-app](./fixtures/bad-app) in this repo, Trust Score **30/100**):
 
 ```
 $ npx @elberacasa/umbra ./fixtures/bad-app
 
-UMBRA TRUST SCORE: 24/100  🔴
+UMBRA TRUST SCORE: 30/100  🔴
 
-SAFE   🔴 0/100 — 15 findings
-CLEAN  ✅ 81/100 — 10 findings
+SAFE   🔴 5/100 — 15 findings
+CLEAN  ✅ 87/100 — 10 findings
 RUNS   — not measured — run with --deep
 HONEST — not measured — run with --deep
 
-Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v2.
+Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v3.
+…plus 8 further findings beyond the per-rule cap (see report)
 
 Top findings:
   [safe/hardcoded-secrets] Hardcoded Stripe live secret key in source — .env:3
@@ -87,7 +93,7 @@ Top findings:
 Notes (low confidence — not scored):
   [safe/missing-rate-limit] Auth endpoint with no rate-limiting signal in the repo — brute-force / credential-stuffing exposure (heuristic) — app/api/login/route.ts:3
 
-Badge: [![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-24-red)](https://github.com/elberacasa/umbra)
+Badge: [![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-30-red)](https://github.com/elberacasa/umbra)
 ```
 
 The exit code is **1** when the score is below 50, so CI can gate on it.
@@ -114,7 +120,7 @@ repo in
 
 Every finding carries a confidence level and file:line evidence. Only high
 and medium confidence findings move the score; hunches go to a notes section.
-The rubric is versioned (currently v2), so the same repo always gets the same
+The rubric is versioned (currently v3), so the same repo always gets the same
 score. Full math in [RUBRIC.md](./RUBRIC.md).
 
 ## The immune layer: guard the write, not just the repo
@@ -168,11 +174,11 @@ $ npx @elberacasa/umbra ./fixtures/claims-app --deep
 UMBRA TRUST SCORE: 49/100  🔴
 
 SAFE   ✅ 100/100 — 0 findings
-CLEAN  ✅ 97/100 — 2 findings
+CLEAN  ✅ 100/100 — 2 findings
 RUNS   — not measured — No detectable run path (no Dockerfile, no package.json start script or main entry)
 HONEST ⚠️ 50/100 — 2 claims failed, 2 verified, 1 unverifiable
 
-Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v2.
+Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v3.
 Score capped below passing: a documented claim was verified false. Trust is the product.
 
 Claim receipts:
@@ -224,10 +230,10 @@ Every scan prints badge markdown. Paste it in your README and your repo
 advertises its own trust score:
 
 ```markdown
-[![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-24-red)](https://github.com/elberacasa/umbra)
+[![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-30-red)](https://github.com/elberacasa/umbra)
 ```
 
-[![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-24-red)](https://github.com/elberacasa/umbra)
+[![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-30-red)](https://github.com/elberacasa/umbra)
 
 ## One engine, every surface
 

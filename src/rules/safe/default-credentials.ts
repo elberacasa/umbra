@@ -1,7 +1,7 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const SCANNED_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml|sql|sh|py|rb|env)$/;
-const TEST_FILE_RE = /\.(test|spec)\.[tj]sx?$/;
 const ENV_TEMPLATE_RE = /^\.env\.(example|sample|template)$/;
 const SEED_CONFIG_PATH_RE = /(seed|config|fixture|setup|init|migration|script)/i;
 
@@ -39,7 +39,7 @@ export const defaultCredentialsRule: Rule = {
       const base = file.relPath.split('/').pop() ?? file.relPath;
       const isEnvFile = base.startsWith('.env');
       if (!SCANNED_FILE_RE.test(file.relPath) && !isEnvFile) continue;
-      if (TEST_FILE_RE.test(file.relPath)) continue;
+      if (isNonProductionPath(file.relPath)) continue;
       if (ENV_TEMPLATE_RE.test(base)) continue;
 
       const inSeedOrConfig = SEED_CONFIG_PATH_RE.test(file.relPath);

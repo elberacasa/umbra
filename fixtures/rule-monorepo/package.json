@@ -1,0 +1,13 @@
+{
+  "name": "acme-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@acme/core": "workspace:*",
+    "@acme/utils": "^1.0.0",
+    "linked-pkg": "link:../linked",
+    "local-pkg": "file:../local",
+    "left-pad": "1.3.0",
+    "supafast-orm": "1.0.0"
+  }
+}

@@ -46,6 +46,8 @@ export interface JsonReport {
   badge: string;
   /** True when a verified-false claim capped the score below passing. */
   liarCapApplied: boolean;
+  /** Findings beyond the per-rule deduction cap — reported, not scored. */
+  cappedFindings: number;
   /** Sandboxed axis reports — present only when the scan ran with --deep. */
   axisReports?: AxisReport[];
 }
@@ -66,6 +68,7 @@ export function toJsonReport(scan: ScanResult, score: ScoreResult, axisReports?:
     notes: score.notes,
     badge: badgeMarkdown(score.total),
     liarCapApplied: score.liarCapApplied,
+    cappedFindings: score.cappedFindings,
   };
   if (axisReports !== undefined) report.axisReports = axisReports;
   return report;
@@ -173,6 +176,11 @@ export function formatVerdict(scan: ScanResult, score: ScoreResult, axisReports?
   if (score.liarCapApplied) {
     lines.push(
       pc.bold(pc.red('Score capped below passing: a documented claim was verified false. Trust is the product.')),
+    );
+  }
+  if (score.cappedFindings > 0) {
+    lines.push(
+      pc.dim(`…plus ${score.cappedFindings} further finding${score.cappedFindings === 1 ? '' : 's'} beyond the per-rule cap (see report)`),
     );
   }
 

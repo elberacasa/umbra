@@ -1,7 +1,7 @@
-# Umbra Scoring Rubric — v2
+# Umbra Scoring Rubric — v3
 
 Umbra's score is deterministic: the same repo always produces the same score.
-The rubric is versioned (`RUBRIC_VERSION = 2` in `src/score/score.ts`) so scores
+The rubric is versioned (`RUBRIC_VERSION = 3` in `src/score/score.ts`) so scores
 stay comparable over time.
 
 ## Axes and weights
@@ -48,6 +48,40 @@ findings.
 
 Axis scores floor at 0 (no negative axes).
 
+### The per-rule deduction ceiling
+
+A single rule can deduct at most **25 points** from an axis, no matter how
+many times it fires. Per rule, the highest deductions (severity points ×
+confidence multiplier, descending) accumulate until the next one would exceed
+the ceiling; every finding beyond it still appears in the report with full
+file:line evidence — but deducts nothing, and the report counts them as
+`cappedFindings`.
+
+Without the ceiling, per-finding deductions scale linearly with repo size:
+the same class of issue hits a 3,000-file repo 100x harder than a 30-file
+one, flooring mature repos at 0. The ceiling makes each rule's maximum blast
+radius size-independent while leaving small repos fully accountable — a repo
+whose rules each stay under 25 points of deductions scores exactly as it
+would uncapped.
+
+### Non-production context suppression (SAFE)
+
+SAFE rules suppress findings in paths that are not production code: test
+files (`*.test.*`, `*.spec.*`, `__tests__/**`, `test/**`, `tests/**`,
+`testing/**`, `e2e*/**`), `benchmarks/**`, `fixtures/**`, `scripts/**`,
+`docs/**`, `*.md`,
+`prompts/**`, `examples/**`, and `demo/**`. A SQL string in a prompt template
+or an `eval()` in a test fixture is not a reachable vulnerability, so these
+findings are dropped entirely — they do not even become notes. One exception:
+`safe/hardcoded-secrets` still fires in non-production paths when it sees an
+obviously-real live key (`sk_live_*`, `AKIA*`, or a decodable JWT), downgraded
+to medium confidence — a real key leaked into a test is a breach class, a
+placeholder is not.
+
+`clean/dead-exports` reports at **low confidence** — its findings are notes
+and never move the score. Textual import detection cannot see path aliases,
+dynamic imports, or dependency injection, so the heuristic is advisory only.
+
 ### RUNS (sandbox)
 
 Verified end to end in a throwaway Docker container (temp copy of the repo,
@@ -85,6 +119,26 @@ If any documented claim is **verified false** (a receipt with verdict
 the passing threshold, no matter how clean everything else is. A repo caught
 lying does not get a passing trust score. The report prints the cap notice
 and the JSON report sets `liarCapApplied: true`.
+
+## Migrating from rubric v2
+
+Rubric v3 introduces the per-rule deduction ceiling and a precision layer:
+SAFE rules suppress non-production paths (above), and `clean/dead-exports`
+both stops flagging entry points, framework-convention files, configs, tests,
+type declarations, scripts, and a library's declared public API (package.json
+`main`/`exports` entry points and the barrel files that re-export them) and
+reports its remaining findings as low-confidence notes. Consequences:
+
+- **Large repos score higher.** Once a rule's deductions pass 25 points, the
+  excess findings no longer deduct; they are reported as `cappedFindings`.
+  Test/script/prompt findings no longer count against SAFE at all, and
+  dead-export hunches no longer count against CLEAN.
+- **Libraries score higher.** Public API surface is no longer reported as
+  dead exports.
+- **Small repos are mostly unchanged.** If no rule exceeded 25 points of
+  deductions and no finding was in a non-production path, the v3 score is
+  identical to v2 — except that dead-export findings moved from scored
+  (1.5 points each) to notes, which can raise CLEAN slightly.
 
 ## Migrating from rubric v1
 

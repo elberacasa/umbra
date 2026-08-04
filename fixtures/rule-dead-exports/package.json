@@ -1,0 +1,13 @@
+{
+  "name": "acme-lib",
+  "version": "1.0.0",
+  "description": "A library: its entry-point exports are public API, never imported internally.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "acme": "./cli.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

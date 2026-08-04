@@ -26,15 +26,37 @@ export async function npmRegistryResolver(name: string): Promise<PackageResoluti
   }
 }
 
-function readDependencies(ctx: ScanContext): string[] {
+function readDependencies(ctx: ScanContext): Record<string, string> {
   const pkgFile = ctx.files.find((f) => f.relPath === 'package.json');
-  if (!pkgFile) return [];
+  if (!pkgFile) return {};
   try {
     const pkg = JSON.parse(pkgFile.content) as { dependencies?: Record<string, string> };
-    return Object.keys(pkg.dependencies ?? {});
+    return pkg.dependencies ?? {};
   } catch {
-    return [];
+    return {};
   }
+}
+
+/** Version specs that never resolve through the public registry. */
+const LOCAL_PROTOCOL_RE = /^(?:workspace|link|file):/;
+
+/**
+ * Package names declared by any package.json in the scanned tree. In a
+ * monorepo, depending on a sibling workspace package by name is normal — the
+ * name legitimately absent from the public registry.
+ */
+function localPackageNames(ctx: ScanContext): Set<string> {
+  const names = new Set<string>();
+  for (const file of ctx.files) {
+    if (!file.relPath.endsWith('/package.json') && file.relPath !== 'package.json') continue;
+    try {
+      const pkg = JSON.parse(file.content) as { name?: unknown };
+      if (typeof pkg.name === 'string' && pkg.name !== '') names.add(pkg.name);
+    } catch {
+      continue;
+    }
+  }
+  return names;
 }
 
 export const hallucinatedDepsRule: Rule = {
@@ -45,12 +67,18 @@ export const hallucinatedDepsRule: Rule = {
   async check(ctx) {
     const findings: Finding[] = [];
     const deps = readDependencies(ctx);
-    if (deps.length === 0) return findings;
+    const depNames = Object.keys(deps);
+    if (depNames.length === 0) return findings;
 
+    const localNames = localPackageNames(ctx);
     const resolver = ctx.options.resolvePackage ?? npmRegistryResolver;
 
     let unknownCount = 0;
-    for (const dep of deps) {
+    for (const dep of depNames) {
+      // Workspace/link/file specs and sibling workspace packages never
+      // resolve through the public registry — not a hallucination signal.
+      const spec = deps[dep] ?? '';
+      if (LOCAL_PROTOCOL_RE.test(spec) || localNames.has(dep)) continue;
       const resolution = await resolver(dep);
       if (resolution === 'missing') {
         findings.push({

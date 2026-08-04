@@ -1,4 +1,5 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const CONFIG_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|json|yml|yaml)$/;
@@ -27,6 +28,7 @@ export const corsWildcardRule: Rule = {
 
     for (const file of ctx.files) {
       if (!CONFIG_FILE_RE.test(file.relPath)) continue;
+      if (isNonProductionPath(file.relPath)) continue;
 
       let wildcardLine = -1;
       let hasCredentials = false;

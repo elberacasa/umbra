@@ -23,4 +23,27 @@ describe('safe/hallucinated-deps', () => {
     const findings = await checkFixture('clean-app', [hallucinatedDepsRule], { resolvePackage: stubResolver });
     expect(findings).toEqual([]);
   });
+
+  it('skips workspace/link/file protocols and sibling workspace package names (fixtures/rule-monorepo)', async () => {
+    // A resolver that fails the test if it is ever consulted for a local dep:
+    // local deps must be skipped before any registry check happens.
+    const checked: string[] = [];
+    const resolver = async (name: string) => {
+      checked.push(name);
+      return stubResolver(name);
+    };
+    const findings = await checkFixture('rule-monorepo', [hallucinatedDepsRule], {
+      resolvePackage: resolver,
+    });
+
+    // The genuinely nonexistent dep still fires.
+    const missing = findings.filter((f) => f.message.includes('does not exist on the npm registry'));
+    expect(missing).toHaveLength(1);
+    expect(missing[0]?.message).toContain('supafast-orm');
+
+    // "@acme/core" (workspace:*), "linked-pkg" (link:), "local-pkg" (file:),
+    // and "@acme/utils" (name declared in packages/utils/package.json) are
+    // never checked against the registry at all.
+    expect(checked.sort()).toEqual(['left-pad', 'supafast-orm']);
+  });
 });

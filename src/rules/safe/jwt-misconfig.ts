@@ -1,4 +1,5 @@
 import type { Finding, Rule } from '../../engine/types.js';
+import { isNonProductionPath } from '../context.js';
 
 const CODE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const JWT_LIB_RE = /from\s+['"]jsonwebtoken['"]|require\(\s*['"]jsonwebtoken['"]\s*\)/;
@@ -43,6 +44,7 @@ export const jwtMisconfigRule: Rule = {
 
     for (const file of ctx.files) {
       if (!CODE_FILE_RE.test(file.relPath)) continue;
+      if (isNonProductionPath(file.relPath)) continue;
       if (!JWT_LIB_RE.test(file.content)) continue;
 
       VERIFY_RE.lastIndex = 0;
