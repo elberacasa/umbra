@@ -81,10 +81,19 @@ false positives we found in our own rules while running it, and fixed
 ## Quickstart
 
 ```bash
-npx umbra-scan   # run inside your project — scans the current directory
+npx umbra-scan            # check — scans the directory you're standing in
+npx umbra-scan --setup    # protect — pre-commit gate, PR checks, agent guardrails
 ```
 
-Or point it anywhere: `npx @elberacasa/umbra ./any/path` (same engine, canonical package).
+That's the whole interface. Two commands: one to check, one to protect.
+
+**Using an AI coding agent?** Umbra is built to be driven by agents, not
+just run by humans:
+
+- **Any agent** — it reads this repo's [AGENTS.md](./AGENTS.md) / [llms.txt](./llms.txt) and knows what to do. Or tell yours: "check this repo with umbra."
+- **Claude Code / Kimi Code** — `--setup` installs PreToolUse hooks so every file the agent writes is guarded before it lands.
+- **Claude Code, Cursor, Copilot, Windsurf** — the [trust-review skill](./skills/README.md) makes the agent scan its own work before declaring done.
+- **MCP-native agents** — add `umbra-mcp` (`npx --yes -p @elberacasa/umbra umbra-mcp`) and the agent gets `scan_repo`, `guard_content`, and `get_score` as tools.
 
 Real output, scanning a typical vibe-coded Next.js app
 ([fixtures/bad-app](./fixtures/bad-app) in this repo, Trust Score **30/100**):
@@ -117,13 +126,26 @@ Badge: [![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-30-r
 
 The exit code is **1** when the score is below 50, so CI can gate on it.
 
+<details>
+<summary><strong>All commands and flags</strong> (the expert layer — most users never need these)</summary>
+
 ```bash
-umbra ./your-repo --json     # machine-readable output
-umbra ./your-repo --offline  # skip npm registry checks, fully local
-umbra ./your-repo --deep     # also verify RUNS and HONEST in a Docker sandbox
-umbra ./your-repo --report   # write UMBRA.md: an agent-actionable task list your AI fixes
-umbra init                   # install the pre-commit gate + GitHub Action
+umbra [path]               # path defaults to the current directory
+umbra [path] --json        # machine-readable output
+umbra [path] --offline     # skip npm registry checks, fully local
+umbra [path] --deep        # verify RUNS and HONEST in a Docker sandbox
+umbra [path] --report      # write UMBRA.md: an agent-actionable task list
+umbra setup                # install everything (hooks + Action + agent guards)
+umbra init                 # only the pre-commit hook + GitHub Action
+umbra protect              # only the agent PreToolUse hooks (--remove uninstalls)
+umbra guard --stdin        # hook entrypoint (agents call this, not humans)
+umbra mcp                  # run the MCP server (bin: umbra-mcp)
 ```
+
+The canonical package is `@elberacasa/umbra`; `umbra-scan` is the short
+alias. Same engine either way.
+
+</details>
 
 ## How it works
 
@@ -264,9 +286,9 @@ advertises its own trust score:
   inside the agent.
 - **GitHub Action**: [`uses: elberacasa/umbra@v1`](./action.yml) comments the
   Trust Score on every PR. Trust gating in CI, zero local setup.
-- **`umbra init`**: installs both into a repo, a pre-commit hook that blocks
-  commits below 50 and the Action. Existing hooks are appended to, never
-  clobbered; `--force` refreshes, `--no-hook` / `--no-action` pick one side.
+- **`umbra setup`**: the one-word installer — pre-commit gate, PR score
+  comments, and PreToolUse guard hooks for detected agents, all idempotent
+  and clobber-free. (`init` and `protect` remain for piecemeal installs.)
 - **`umbra protect`**: installs PreToolUse hooks into Claude Code and Kimi
   Code (auto-detected, idempotent, `--remove` to uninstall) so Umbra reviews
   every agent write mid-stream and blocks dangerous ones before they land.

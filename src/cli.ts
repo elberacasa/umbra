@@ -14,6 +14,8 @@ import { measureHonest } from './axes/honest/index.js';
 import type { AxisReport } from './axes/types.js';
 import { runInit } from './commands/init.js';
 import { runProtect } from './commands/protect.js';
+import { runSetup } from './commands/setup.js';
+import { nextSteps } from './suggest.js';
 import { runGuardPayload } from './guard/hook.js';
 
 export const FAIL_THRESHOLD = 50;
@@ -33,6 +35,8 @@ export interface ExecuteResult {
   exitCode: number;
   /** UMBRA.md contents — present only when ExecuteOptions.report is true. */
   markdown?: string;
+  /** Contextual next-step hints for interactive runs. */
+  suggestions?: string[];
 }
 
 export async function execute(targetPath: string, options: ExecuteOptions = {}): Promise<ExecuteResult> {
@@ -71,6 +75,7 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
   if (options.report === true) {
     result.markdown = toMarkdownReport(scan, score, axisReports);
   }
+  result.suggestions = nextSteps(score, options);
   return result;
 }
 
@@ -96,11 +101,38 @@ async function main(argv: string[]): Promise<number> {
         // The star line: one dim line, interactive terminals only. Never in
         // CI logs, pipes, or --json output — a guardrail tool earns its ask.
         if (opts.json !== true && process.stdout.isTTY === true) {
+          for (const step of result.suggestions ?? []) {
+            console.log(pc.dim(`next: ${step}`));
+          }
           console.log(pc.dim('Useful? Star Umbra: https://github.com/elberacasa/umbra'));
         }
         process.exitCode = result.exitCode;
       } catch (error) {
         console.error(`umbra: scan failed — ${error instanceof Error ? error.message : String(error)}`);
+        process.exitCode = 2;
+      }
+    });
+
+  program
+    .command('setup')
+    .description('One-word installer: pre-commit gate, GitHub Action, and agent guard hooks (auto-detected)')
+    .argument('[path]', 'repository to install into', '.')
+    .option('--global', 'install agent hooks into global CLI config instead of project config')
+    .option('--agent <name>', 'install agent hooks for one agent only (claude, kimi)')
+    .action(async (target: string, opts: { global?: boolean; agent?: string }) => {
+      try {
+        const result = await runSetup(target, {
+          global: opts.global === true,
+          ...(opts.agent !== undefined ? { agent: opts.agent } : {}),
+        });
+        for (const p of result.installed) console.log(`installed  ${p}`);
+        for (const p of result.skipped) console.log(`skipped    ${p}`);
+        for (const n of result.notes) console.log(`note       ${n}`);
+        if (result.installed.length === 0 && result.skipped.length === 0 && result.notes.length === 0) {
+          console.log('nothing to do');
+        }
+      } catch (error) {
+        console.error(`umbra: setup failed — ${error instanceof Error ? error.message : String(error)}`);
         process.exitCode = 2;
       }
     });

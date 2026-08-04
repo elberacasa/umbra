@@ -14,6 +14,7 @@
 - `npx @elberacasa/umbra [path] --deep` — Docker-sandbox verification
 - `npx @elberacasa/umbra [path] --json` — machine-readable report
 - `npx @elberacasa/umbra [path] --report` — write UMBRA.md, findings as an agent task list
+- `npx @elberacasa/umbra setup` — one-word installer: pre-commit gate, Action, agent guard hooks
 - `npx @elberacasa/umbra init` — install pre-commit hook + GitHub Action
 - `npx @elberacasa/umbra protect [--remove]` — install/uninstall PreToolUse
   guard hooks (Claude Code, Kimi Code); blocks dangerous agent writes mid-stream

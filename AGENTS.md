@@ -19,7 +19,8 @@ npx @elberacasa/umbra <path>          # canonical package, scan any path
 npx @elberacasa/umbra <path> --deep   # + RUNS and HONEST, needs Docker
 npx @elberacasa/umbra <path> --json   # machine-readable report
 npx @elberacasa/umbra <path> --report # write UMBRA.md: findings as an agent task list
-npx @elberacasa/umbra protect         # install PreToolUse hooks (Claude Code, Kimi Code)
+npx @elberacasa/umbra setup           # one-word installer: hooks + Action + agent guards
+npx @elberacasa/umbra protect         # only the PreToolUse hooks (Claude Code, Kimi Code)
 npx @elberacasa/umbra protect --remove  # uninstall the hooks
 ```
 
