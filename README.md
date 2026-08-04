@@ -14,7 +14,7 @@ claimed. One command, fully local, evidence for every finding.
 
 [![npm version](https://img.shields.io/npm/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 [![license: MIT](https://img.shields.io/npm/l/@elberacasa/umbra)](./LICENSE)
-[![CI](https://github.com/elberacasa/umbra/actions/workflows/umbra-self.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/umbra-self.yml)
+[![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 
 [Quickstart](#quickstart) · [Demo](#demo) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing)
@@ -114,6 +114,37 @@ Every finding carries a confidence level and file:line evidence. Only high
 and medium confidence findings move the score; hunches go to a notes section.
 The rubric is versioned (currently v2), so the same repo always gets the same
 score. Full math in [RUBRIC.md](./RUBRIC.md).
+
+## The immune layer: guard the write, not just the repo
+
+Scanning finds problems after they land. The immune layer checks every file
+your agent writes **before** it lands. `umbra protect` installs PreToolUse
+hooks into Claude Code and Kimi Code (auto-detected, one command); the same
+engine backs the `umbra-mcp` server for MCP-native agents.
+
+![Umbra blocking an agent's attempt to write a live key into .env](demo/guard.gif)
+
+```mermaid
+flowchart LR
+    CC[Claude Code hook] --> E
+    KC[Kimi Code hook] --> E
+    MCP["umbra-mcp: guard_content"] --> E
+    E{"guardContent(file, content)<br/>file rules + path guard"} -->|allow / warn| W[write lands]
+    E -->|"block (exit 2)"| B["reason fed back:<br/>agent fixes the root cause"]
+```
+
+```bash
+npx umbra-scan protect   # install the hooks; --remove uninstalls cleanly
+```
+
+A leaked Stripe key or an `alg: none` JWT never reaches the file. The path
+guard hard-blocks agent writes into `.git/hooks` and `.git/config`
+([CVE-2026-26268](https://anomity.ai/blog/cursor-git-hooks-sandbox-escape-rce-cve-2026-26268/),
+the agent-planted git hook escape), and live credentials going into `.env`.
+Blocking is reserved for high-confidence critical/high findings; everything
+else warns, and every failure fails open. Verdicts land in ~0.2 ms, so the
+guard never slows the agent down. Full story:
+[docs/immune-layer.md](./docs/immune-layer.md).
 
 ## `--deep`: verify AI code, don't trust it
 
