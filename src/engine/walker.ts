@@ -24,6 +24,10 @@ const SKIP_FILES = new Set([
   'yarn.lock',
   'pnpm-lock.yaml',
   'bun.lockb',
+  // Umbra's own metadata: machine-generated, and its ruleId strings would
+  // otherwise read as repo content (e.g. a "rate-limit" keyword signal).
+  '.umbra-baseline.json',
+  'UMBRA.md',
 ]);
 
 const TEXT_EXTENSIONS = new Set([

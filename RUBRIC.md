@@ -214,3 +214,31 @@ Every report prints the rubric version it was computed with.
 
 `umbra <path>` exits with code **1** when the total score is below **50**, so
 CI pipelines can gate on it. Otherwise exit code 0.
+
+## Baselines (adopting Umbra in an existing repo)
+
+Baselining is **not part of the rubric** — it filters the findings that go
+into the rubric, it never changes the math. The rubric version stays the
+same; a baselined repo and a clean repo both score 100 under identical math.
+
+`umbra --baseline-write` scans the repo and writes `.umbra-baseline.json`
+into the repo root: every current finding's fingerprint, the creation
+timestamp, and the rubric version it was written under. On every later scan
+the file is auto-detected (or pointed at explicitly with `--baseline <path>`),
+and any finding whose fingerprint is in the baseline is **grandfathered**: it
+is filtered out before scoring, so the total, the axis scores, and the exit
+code reflect **new findings only**. The verdict prints a dim
+`baseline: N existing findings grandfathered (M new)` line, and the JSON
+report carries `baselinedCount`, `newFindingsCount`, and a `baselined`
+boolean per finding.
+
+The fingerprint is a stable hash of `ruleId + file + normalized message`.
+Line numbers are excluded and message whitespace is collapsed, so line drift
+and reflowed output never resurrect a baselined finding; a genuinely new
+issue — different rule, file, or message — is always scored.
+
+Footgun guards: a baseline written under a different rubric version is
+ignored with a stderr warning (a stale baseline would silently hide findings
+from rules added since), a corrupted or malformed baseline file is ignored
+with a warning, and an empty baseline is a no-op. Re-running
+`--baseline-write` overwrites the file with a note.

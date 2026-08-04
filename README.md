@@ -138,6 +138,8 @@ umbra [path] --deep        # verify RUNS and HONEST in a Docker sandbox
 umbra [path] --report      # write UMBRA.md: an agent-actionable task list
 umbra [path] --fix         # apply provably-safe fixes and re-scan (score before → after)
 umbra [path] --dry-run     # preview --fix without writing anything
+umbra [path] --baseline-write  # write .umbra-baseline.json: grandfather current findings, gate only on new ones
+umbra [path] --baseline <path> # use an explicit baseline file ("write" is shorthand for --baseline-write)
 umbra setup                # install everything (hooks + Action + agent guards)
 umbra init                 # only the pre-commit hook + GitHub Action
 umbra protect              # only the agent PreToolUse hooks (--remove uninstalls)
@@ -320,6 +322,14 @@ The wedge is a score. The destination is the verification layer every
 AI-built repo runs through.
 
 ## FAQ
+
+**How do I adopt Umbra in a repo that already has findings?**
+Run `npx umbra-scan --baseline-write` once. Umbra writes `.umbra-baseline.json`
+into the repo root, and from then on the gate only blocks **new** issues —
+existing findings are grandfathered (the verdict shows
+`baseline: N existing findings grandfathered (M new)`), so you fix forward
+instead of boiling the ocean. Commit the baseline file so the whole team and
+CI share it.
 
 **How is Umbra different from Semgrep, Snyk, or trufflehog?**
 They scan code patterns; Umbra verifies outcomes. Static rules are one input

@@ -8,6 +8,7 @@ import { runScan } from './engine/runner.js';
 import type { ScanOptions } from './engine/types.js';
 import { allRules } from './rules/index.js';
 import { computeScore } from './score/score.js';
+import { BASELINE_FILENAME, loadBaseline, writeBaseline } from './baseline.js';
 import { formatVerdict, toJsonReport, toMarkdownReport } from './report.js';
 import { measureRuns } from './axes/runs/index.js';
 import { measureHonest } from './axes/honest/index.js';
@@ -33,6 +34,10 @@ export interface ExecuteOptions {
   fix?: boolean;
   /** With --fix (or alone): print what would change, write nothing. */
   dryRun?: boolean;
+  /** Write .umbra-baseline.json into the scanned repo, grandfathering current findings. */
+  baselineWrite?: boolean;
+  /** Explicit baseline file path — or the literal 'write' as shorthand for baselineWrite. */
+  baseline?: string;
   scanOptions?: ScanOptions;
 }
 
@@ -58,6 +63,19 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
 
   let scan = await runScan(root, allRules, scanOptions);
 
+  // Baseline: --baseline-write snapshots current findings without filtering
+  // this run; otherwise auto-detect <root>/.umbra-baseline.json (or an
+  // explicit --baseline path) and score new findings only.
+  const baselineWriteRequested = options.baselineWrite === true || options.baseline === 'write';
+  let baselineSet: Set<string> | undefined;
+  if (!baselineWriteRequested) {
+    const explicit = options.baseline !== undefined;
+    const baselinePath = explicit ? path.resolve(options.baseline as string) : path.join(root, BASELINE_FILENAME);
+    const loaded = loadBaseline(baselinePath, { explicit });
+    if (loaded.status === 'ignored') process.stderr.write(`umbra: ${loaded.warning}\n`);
+    if (loaded.status === 'ok') baselineSet = loaded.set;
+  }
+
   let axisReports: AxisReport[] | undefined;
   if (options.deep === true) {
     process.stderr.write(
@@ -75,7 +93,7 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
     }
   }
 
-  let score = computeScore(scan.findings, axisReports);
+  let score = computeScore(scan.findings, axisReports, baselineSet);
 
   // --fix: apply the provably-safe transforms, re-scan, report before/after.
   // Sandboxed axes (RUNS/HONEST) are not re-measured — fixes only touch
@@ -87,11 +105,19 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
     beforeScore = score.total;
     fixes = await applyFixes(root, scan.findings, { dryRun });
     scan = await runScan(root, allRules, scanOptions);
-    score = computeScore(scan.findings, axisReports);
+    score = computeScore(scan.findings, axisReports, baselineSet);
+  }
+
+  if (baselineWriteRequested) {
+    const written = writeBaseline(root, scan.findings);
+    process.stderr.write(
+      `umbra: ${written.overwrote ? 'overwrote' : 'wrote'} ${written.path} — ` +
+        `${written.count} finding${written.count === 1 ? '' : 's'} grandfathered; future scans only gate on new findings\n`,
+    );
   }
 
   const output = options.json === true
-    ? JSON.stringify(toJsonReport(scan, score, axisReports), null, 2)
+    ? JSON.stringify(toJsonReport(scan, score, axisReports, baselineSet), null, 2)
     : formatVerdict(scan, score, axisReports) +
       (fixes !== undefined && beforeScore !== undefined
         ? `${formatFixSection(fixes, beforeScore, score.total, options.dryRun === true)}\n`
@@ -119,7 +145,9 @@ async function main(argv: string[]): Promise<number> {
     .option('--report', 'write UMBRA.md, an agent-actionable markdown report, into the scanned repo')
     .option('--fix', 'apply provably-safe fixes (unused deps, hardcoded secrets, default creds), then re-scan')
     .option('--dry-run', 'with --fix: print what would change without writing anything')
-    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean; fix?: boolean; dryRun?: boolean }) => {
+    .option('--baseline-write', 'write .umbra-baseline.json into the scanned repo: current findings are grandfathered, the gate only blocks new findings')
+    .option('--baseline <path>', 'use an explicit baseline file ("write" is shorthand for --baseline-write)')
+    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean; fix?: boolean; dryRun?: boolean; baselineWrite?: boolean; baseline?: string }) => {
       try {
         const result = await execute(target, opts);
         console.log(result.output);

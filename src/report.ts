@@ -1,6 +1,7 @@
 import pc from 'picocolors';
 import type { Finding, ScanResult } from './engine/types.js';
 import type { ScoreResult } from './score/score.js';
+import { fingerprintFinding } from './score/score.js';
 import type { AxisReport, ClaimReceipt } from './axes/types.js';
 import { allRules } from './rules/index.js';
 import { REMEDIATION } from './guard/hook.js';
@@ -33,6 +34,9 @@ export function badgeMarkdown(score: number): string {
   return `[![Umbra Trust Score](${img})](https://github.com/elberacasa/umbra)`;
 }
 
+/** A finding in the JSON report, flagged when a baseline grandfathered it. */
+export type JsonFinding = Finding & { baselined: boolean };
+
 export interface JsonReport {
   score: number;
   rubricVersion: number;
@@ -41,18 +45,31 @@ export interface JsonReport {
   note: string;
   fileCount: number;
   axes: ScoreResult['axes'];
-  findings: Finding[];
-  notes: Finding[];
+  findings: JsonFinding[];
+  notes: JsonFinding[];
   badge: string;
   /** True when a verified-false claim capped the score below passing. */
   liarCapApplied: boolean;
   /** Findings beyond the per-rule deduction cap — reported, not scored. */
   cappedFindings: number;
+  /** Findings grandfathered by a baseline — they did not affect the score. */
+  baselinedCount: number;
+  /** Findings not in the baseline — the score is computed over these. */
+  newFindingsCount: number;
   /** Sandboxed axis reports — present only when the scan ran with --deep. */
   axisReports?: AxisReport[];
 }
 
-export function toJsonReport(scan: ScanResult, score: ScoreResult, axisReports?: AxisReport[]): JsonReport {
+export function toJsonReport(
+  scan: ScanResult,
+  score: ScoreResult,
+  axisReports?: AxisReport[],
+  baseline?: ReadonlySet<string>,
+): JsonReport {
+  const annotate = (f: Finding): JsonFinding => ({
+    ...f,
+    baselined: baseline?.has(fingerprintFinding(f)) ?? false,
+  });
   const report: JsonReport = {
     score: score.total,
     rubricVersion: score.rubricVersion,
@@ -64,11 +81,13 @@ export function toJsonReport(scan: ScanResult, score: ScoreResult, axisReports?:
         : 'RUNS and HONEST were verified in a Docker sandbox (--deep); axes that could not be verified are reported as skipped and excluded from the total (see RUBRIC.md).',
     fileCount: scan.fileCount,
     axes: score.axes,
-    findings: sortFindings(score.scoredFindings),
-    notes: score.notes,
+    findings: sortFindings(scan.findings.filter((f) => f.confidence !== 'low')).map(annotate),
+    notes: scan.findings.filter((f) => f.confidence === 'low').map(annotate),
     badge: badgeMarkdown(score.total),
     liarCapApplied: score.liarCapApplied,
     cappedFindings: score.cappedFindings,
+    baselinedCount: score.baselinedCount,
+    newFindingsCount: score.newFindingsCount,
   };
   if (axisReports !== undefined) report.axisReports = axisReports;
   return report;
@@ -173,6 +192,13 @@ export function formatVerdict(scan: ScanResult, score: ScoreResult, axisReports?
       `Score computed over measured axes only (full rubric: SAFE 35%, RUNS 25%, HONEST 25%, CLEAN 15%). Rubric v${score.rubricVersion}.`,
     ),
   );
+  if (score.baselinedCount > 0) {
+    lines.push(
+      pc.dim(
+        `baseline: ${score.baselinedCount} existing finding${score.baselinedCount === 1 ? '' : 's'} grandfathered (${score.newFindingsCount} new)`,
+      ),
+    );
+  }
   if (score.liarCapApplied) {
     lines.push(
       pc.bold(pc.red('Score capped below passing: a documented claim was verified false. Trust is the product.')),
@@ -245,6 +271,9 @@ export function toMarkdownReport(scan: ScanResult, score: ScoreResult, axisRepor
   }
   if (score.unmeasuredAxes.length > 0) {
     lines.push(`- _${score.unmeasuredAxes.join(', ')} not measured${axisReports === undefined ? ' — run `npx umbra-scan --deep --report`' : ''}_`);
+  }
+  if (score.baselinedCount > 0) {
+    lines.push(`- _${score.baselinedCount} existing finding${score.baselinedCount === 1 ? '' : 's'} grandfathered by .umbra-baseline.json — only new findings are listed below_`);
   }
   if (score.liarCapApplied) {
     lines.push('', '**Score capped below 50: a documented claim was verified false.** Trust is the product.');

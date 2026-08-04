@@ -1,7 +1,22 @@
+import { createHash } from 'node:crypto';
 import type { Axis, Confidence, Finding, Severity } from '../engine/types.js';
 import type { AxisReport } from '../axes/types.js';
 
 export const RUBRIC_VERSION = 4;
+
+/**
+ * Stable identity of a finding for baselining: ruleId + file + normalized
+ * message. Line numbers are deliberately excluded — line drift must not
+ * resurrect a baselined finding — and message whitespace is collapsed so
+ * reflowed output doesn't either.
+ */
+export function fingerprintFinding(f: Finding): string {
+  const message = f.message.replace(/\s+/g, ' ').trim();
+  return createHash('sha256')
+    .update(`${f.ruleId}\n${f.file ?? ''}\n${message}`)
+    .digest('hex')
+    .slice(0, 16);
+}
 
 /**
  * Per-rule deduction ceiling: a single ruleId can deduct at most this many
@@ -62,6 +77,10 @@ export interface ScoreResult {
   liarCapApplied: boolean;
   /** Findings beyond the per-rule cap — reported, but they deduct nothing. */
   cappedFindings: number;
+  /** Findings matched by a baseline — grandfathered, they deduct nothing. */
+  baselinedCount: number;
+  /** Findings not in the baseline. Equals total findings when no baseline is active. */
+  newFindingsCount: number;
 }
 
 function findingDeduction(f: Finding): number {
@@ -110,10 +129,20 @@ export function scoreAxis(findings: Finding[]): number {
  * SAFE/CLEAN always come from static findings. RUNS/HONEST count as measured
  * only when an AxisReport is supplied AND its status is not 'skipped' — a
  * skipped axis (no Docker, no run path, no claims) never moves the total.
+ *
+ * When a baseline fingerprint set is supplied, findings whose fingerprint is
+ * in the set are grandfathered: they are filtered out before any scoring, so
+ * the total, the axis scores, and the exit code reflect new findings only.
  */
-export function computeScore(findings: Finding[], axisReports: AxisReport[] = []): ScoreResult {
-  const scoredFindings = findings.filter((f) => f.confidence !== 'low');
-  const notes = findings.filter((f) => f.confidence === 'low');
+export function computeScore(
+  findings: Finding[],
+  axisReports: AxisReport[] = [],
+  baseline?: ReadonlySet<string>,
+): ScoreResult {
+  const active = baseline === undefined ? findings : findings.filter((f) => !baseline.has(fingerprintFinding(f)));
+  const baselinedCount = findings.length - active.length;
+  const scoredFindings = active.filter((f) => f.confidence !== 'low');
+  const notes = active.filter((f) => f.confidence === 'low');
 
   const measuredReports = new Map<Axis, AxisReport>();
   for (const report of axisReports) {
@@ -123,7 +152,7 @@ export function computeScore(findings: Finding[], axisReports: AxisReport[] = []
   const axes: AxisScore[] = [];
   let cappedFindings = 0;
   for (const axis of MEASURED_AXES) {
-    const axisFindings = findings.filter((f) => f.axis === axis);
+    const axisFindings = active.filter((f) => f.axis === axis);
     cappedFindings += cappedDeduction(axisFindings).capped;
     axes.push({ axis, score: scoreAxis(axisFindings), findingCount: axisFindings.length });
   }
@@ -133,7 +162,7 @@ export function computeScore(findings: Finding[], axisReports: AxisReport[] = []
     axes.push({
       axis,
       score: report.score,
-      findingCount: findings.filter((f) => f.axis === axis).length,
+      findingCount: active.filter((f) => f.axis === axis).length,
     });
   }
 
@@ -159,5 +188,7 @@ export function computeScore(findings: Finding[], axisReports: AxisReport[] = []
     unmeasuredAxes: (Object.keys(AXIS_WEIGHTS) as Axis[]).filter((a) => !measured.has(a)),
     liarCapApplied,
     cappedFindings,
+    baselinedCount,
+    newFindingsCount: active.length,
   };
 }
