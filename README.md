@@ -15,9 +15,11 @@ claimed. One command, fully local, evidence for every finding.
 [![npm version](https://img.shields.io/npm/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 [![npm downloads](https://img.shields.io/npm/dm/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 [![GitHub stars](https://img.shields.io/github/stars/elberacasa/umbra)](https://github.com/elberacasa/umbra/stargazers)
-[![MCP registry](https://img.shields.io/badge/MCP_registry-io.github.elberacasa%2Fumbra-00f0ff)](https://registry.modelcontextprotocol.io)
+[![Glama MCP score](https://glama.ai/mcp/servers/elberacasa/umbra/badges/score.svg)](https://glama.ai/mcp/servers/elberacasa/umbra)
+[![MCP registry: listed](https://img.shields.io/badge/MCP_registry-listed-00f0ff)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.elberacasa/umbra)
 [![license: MIT](https://img.shields.io/npm/l/@elberacasa/umbra)](./LICENSE)
 [![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
+[![rubric v3](https://img.shields.io/badge/rubric-v3-b829f7)](./RUBRIC.md)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 
 [Quickstart](#quickstart) · [Demo](#demo) · [The Audit](#the-audit-61-vibe-coded-repos-scanned) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing)
