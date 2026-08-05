@@ -289,9 +289,14 @@ advertises its own trust score:
 
 [![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-30-red)](https://github.com/elberacasa/umbra)
 
-Static badges ship today; once the service in [`services/badge`](./services/badge)
-is deployed, `--publish` (or the Action's `publish: true`) upgrades this to a
-live badge backed by your CI's self-reported score.
+**Live badges** are one flag away: run with `--publish` (or the Action's
+`publish: true`) and your score reports to the hosted badge service, so your
+README always shows the current number with a full report page behind the
+click — self-reported by your CI, labeled as such:
+
+```markdown
+[![Umbra Trust Score](https://umbra-badge.umbrabadge.workers.dev/badge/OWNER/REPO.svg)](https://umbra-badge.umbrabadge.workers.dev/OWNER/REPO)
+```
 
 ## One engine, every surface
 
