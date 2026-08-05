@@ -108,3 +108,13 @@ that repo. `404` when the repo never reported.
 ### `GET /` and `GET /health`
 
 `/` → 302 to https://github.com/elberacasa/umbra · `/health` → `200 ok`.
+
+## Landing page
+
+`src/landing.html` is the source of truth for the page served at `/`. After editing it, regenerate the embedded module:
+
+```bash
+node -e 'const fs=require("fs");fs.writeFileSync("src/landing.ts","// GENERATED from landing.html\nexport const LANDING_HTML = "+JSON.stringify(fs.readFileSync("src/landing.html","utf8"))+";\n")'
+```
+
+Then `npm run deploy`.
