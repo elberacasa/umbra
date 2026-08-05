@@ -223,10 +223,13 @@ describe('rate limit', () => {
 });
 
 describe('misc routes', () => {
-  it('redirects / to the GitHub repo', async () => {
+  it('serves the landing page at /', async () => {
     const res = await worker.fetch(new Request('https://badge.test/'), makeEnv());
-    expect(res.status).toBe(302);
-    expect(res.headers.get('location')).toBe('https://github.com/elberacasa/umbra');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
+    const body = await res.text();
+    expect(body).toContain('Can you trust it?');
+    expect(body).toContain('npx umbra-scan');
   });
 
   it('answers /health', async () => {

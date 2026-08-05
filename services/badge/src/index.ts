@@ -7,6 +7,8 @@
  * report page behind it.
  */
 
+import { LANDING_HTML } from './landing.js';
+
 export interface Env {
   SCORES: KVNamespace;
 }
@@ -362,7 +364,9 @@ export default {
       return new Response('ok', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
     }
     if (pathname === '/') {
-      return Response.redirect(GITHUB_URL, 302);
+      return new Response(LANDING_HTML, {
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' },
+      });
     }
     if (pathname === '/api/report') {
       if (request.method !== 'POST') {

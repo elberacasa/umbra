@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umbra — The trust score for AI-generated code</title>
+<meta name="description" content="Everyone is vibecoding. Nobody is verifying. Umbra scores any AI-built repo 0-100 — security, slop, does it run, is the agent lying — with evidence for every claim.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f6f1e7;
+  --paper-dim: #efe8da;
+  --ink: #1b1a17;
+  --ink-soft: #4a463d;
+  --ink-faint: #8a8478;
+  --accent: #7b2ff7;
+  --accent-soft: #9b5cf7;
+  --cyan: #0e9db8;
+  --danger: #c2452d;
+  --warn: #b97c1e;
+  --ok: #2e7d4f;
+  --line: #d8d0bf;
+  --card: #fffdf8;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  background-image: radial-gradient(var(--line) 0.8px, transparent 0.8px);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+.mono { font-family: var(--mono); }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 32px; }
+
+/* ── nav ─────────────────────────────── */
+nav {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+nav .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 700; font-size: 15px; text-decoration: none; color: var(--ink); }
+.brand svg { width: 22px; height: 22px; }
+nav .links { display: flex; gap: 22px; margin-left: 8px; }
+nav .links a { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); text-decoration: none; letter-spacing: 0.02em; }
+nav .links a:hover { color: var(--accent); }
+nav .spacer { flex: 1; }
+.star-pill {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+  text-decoration: none; background: var(--card);
+}
+.star-pill:hover { border-color: var(--accent); color: var(--accent); }
+.btn {
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  padding: 10px 20px; border-radius: 8px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 0 #5a1ec2; }
+.btn-primary:hover { box-shadow: 0 4px 0 #5a1ec2; }
+.btn-ghost { border: 1.5px solid var(--ink); color: var(--ink); background: transparent; }
+
+/* ── hero ────────────────────────────── */
+.hero { position: relative; min-height: 92vh; display: flex; align-items: center; justify-content: center; padding: 90px 0 70px; }
+.hero-center { position: relative; z-index: 5; text-align: center; max-width: 780px; padding: 0 24px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  background: var(--ink); color: var(--paper);
+  padding: 6px 14px; border-radius: 6px; margin-bottom: 34px;
+}
+.hero-badge .dot { color: var(--accent-soft); }
+h1 {
+  font-size: clamp(44px, 6.2vw, 78px);
+  font-weight: 500; line-height: 1.08; letter-spacing: -0.015em;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.hero-sub {
+  font-family: var(--mono); font-size: 15px; color: var(--ink-soft);
+  max-width: 560px; margin: 26px auto 0; line-height: 1.7;
+}
+.hero-ctas { display: flex; gap: 14px; justify-content: center; margin-top: 40px; flex-wrap: wrap; }
+.cmd {
+  font-family: var(--mono); font-size: 14px; font-weight: 500;
+  background: var(--ink); color: #7ef0d4;
+  padding: 12px 22px; border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
+  border: none; box-shadow: 0 2px 0 #000;
+}
+.cmd .prompt { color: var(--accent-soft); }
+.cmd:hover { transform: translateY(-1px); box-shadow: 0 4px 0 #000; }
+.cmd.copied { color: #ffd166; }
+
+/* ── os cards ────────────────────────── */
+.os-card {
+  position: absolute; z-index: 2;
+  width: 300px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(27, 26, 23, 0.10), 0 2px 6px rgba(27, 26, 23, 0.06);
+  text-align: left;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+}
+.os-card:hover { transform: translateY(-4px) rotate(0deg) !important; z-index: 8; box-shadow: 0 20px 44px rgba(27, 26, 23, 0.16); }
+.os-bar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 12px; border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500; color: var(--ink-soft);
+}
+.os-bar .lights { display: flex; gap: 5px; }
+.os-bar .lights i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #e0685c; }
+.lights i:nth-child(2) { background: #e8b84b; }
+.lights i:nth-child(3) { background: #5fb86e; }
+.os-body { padding: 13px 14px 12px; font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
+.os-body strong { color: var(--ink); font-weight: 500; }
+.os-foot { display: flex; align-items: center; gap: 8px; padding: 0 14px 12px; }
+.os-foot .cat {
+  margin-left: auto; font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.08em; padding: 3px 8px; border-radius: 4px;
+}
+.os-btn { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); background: var(--paper); border-radius: 5px; padding: 3px 10px; color: var(--ink-soft); cursor: default; }
+.cat-secret { background: #f7dcd4; color: var(--danger); }
+.cat-lie { background: #f5e6c8; color: var(--warn); }
+.cat-auth { background: #e9defa; color: var(--accent); }
+.cat-injection { background: #f7dcd4; color: var(--danger); }
+.cat-config { background: #d9edf3; color: var(--cyan); }
+.cat-exposure { background: #f5e6c8; color: var(--warn); }
+
+/* card placement */
+.c1 { top: 6%; left: 4%; transform: rotate(-3deg); }
+.c2 { top: 4%; left: 38%; transform: rotate(1.5deg); }
+.c3 { top: 7%; right: 5%; transform: rotate(2.5deg); }
+.c4 { top: 38%; left: 1.5%; transform: rotate(-1.5deg); opacity: 0.85; }
+.c5 { top: 36%; right: 2%; transform: rotate(2deg); opacity: 0.85; }
+.c6 { bottom: 12%; left: 7%; transform: rotate(2deg); opacity: 0.9; }
+.c7 { bottom: 8%; left: 41%; transform: rotate(-2deg); }
+.c8 { bottom: 11%; right: 7%; transform: rotate(-2.5deg); opacity: 0.9; }
+@media (max-width: 1100px) { .os-card { display: none; } .os-card.c2, .os-card.c7 { display: block; opacity: 0.5; z-index: 1; } }
+@media (max-width: 760px) { .os-card { display: none !important; } }
+
+/* ── sections ────────────────────────── */
+section { padding: 110px 0; }
+.section-label { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: 0.04em; margin-bottom: 22px; }
+.section-label::before { content: '> '; }
+h2 { font-size: clamp(32px, 4.2vw, 52px); font-weight: 500; line-height: 1.15; letter-spacing: -0.01em; max-width: 720px; }
+h2 em { font-style: italic; color: var(--accent); }
+h2 .cyan { color: var(--cyan); font-style: italic; }
+.section-body { font-size: 19px; color: var(--ink-soft); max-width: 640px; margin-top: 18px; }
+
+/* axes cards */
+.axes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 56px; }
+@media (max-width: 900px) { .axes { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .axes { grid-template-columns: 1fr; } }
+.axis-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 20px 18px; box-shadow: 0 2px 8px rgba(27,26,23,0.05);
+}
+.axis-card .axis-head { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+.axis-card .axis-q { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 10px; line-height: 1.6; }
+.axis-dot { width: 9px; height: 9px; border-radius: 50%; }
+.axis-weight { margin-left: auto; font-size: 11px; color: var(--ink-faint); font-weight: 400; }
+.connector { display: flex; justify-content: center; padding: 4px 0; }
+.connector svg { display: block; }
+
+/* terminal card */
+.terminal {
+  background: #17140f; border-radius: 12px; overflow: hidden;
+  max-width: 760px; margin: 48px auto 0;
+  box-shadow: 0 24px 60px rgba(27,26,23,0.22);
+}
+.terminal .os-bar { background: #221e16; border-bottom: 1px solid #35301f; color: #a89f88; }
+.terminal pre {
+  padding: 22px 26px; font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+  color: #d8d2c0; overflow-x: auto;
+}
+.terminal .t-dim { color: #7a7362; }
+.terminal .t-red { color: #ff7a66; font-weight: 700; }
+.terminal .t-green { color: #6fdc96; font-weight: 700; }
+.terminal .t-cyan { color: #5fd6ef; }
+.terminal .t-purple { color: #c39bf7; }
+
+/* venn */
+.venn-wrap { display: flex; justify-content: center; margin-top: 64px; }
+.venn-cap { text-align: center; font-style: italic; color: var(--ink-soft); font-size: 19px; margin-top: 36px; }
+.venn-cap b { color: var(--ink); font-weight: 600; }
+
+/* stats strip */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 56px; }
+@media (max-width: 800px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 26px 22px; text-align: center;
+}
+.stat .num { font-family: var(--mono); font-size: 34px; font-weight: 700; color: var(--accent); }
+.stat .lbl { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-top: 8px; line-height: 1.5; }
+
+/* footer */
+footer { border-top: 1px solid var(--line); padding: 80px 0 60px; text-align: center; }
+footer .big-cmd { font-family: var(--mono); font-size: clamp(18px, 3vw, 28px); background: var(--ink); color: #7ef0d4; padding: 18px 34px; border-radius: 10px; display: inline-block; box-shadow: 0 3px 0 #000; }
+footer .big-cmd .prompt { color: var(--accent-soft); }
+footer .foot-links { display: flex; gap: 26px; justify-content: center; margin-top: 40px; font-family: var(--mono); font-size: 12.5px; }
+footer .foot-links a { color: var(--ink-soft); text-decoration: none; }
+footer .foot-links a:hover { color: var(--accent); }
+footer .tiny { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-top: 28px; }
+
+@media (max-width: 640px) {
+  section { padding: 70px 0; }
+  .hero { min-height: auto; padding: 70px 0 50px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="eg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00c4d4"/><stop offset="1" stop-color="#9a1fd0"/></linearGradient></defs><circle cx="32" cy="32" r="24" fill="url(#eg)"/><circle cx="25.5" cy="32" r="21" fill="#1b1a17"/></svg>
+      umbra
+    </a>
+    <div class="links">
+      <a href="#problem">Problem</a>
+      <a href="#solution">Solution</a>
+      <a href="#audit">The Audit</a>
+      <a href="https://github.com/elberacasa/umbra/blob/main/README.md">Docs</a>
+    </div>
+    <div class="spacer"></div>
+    <a class="star-pill" href="https://github.com/elberacasa/umbra">★ github</a>
+    <a class="btn btn-primary" href="https://github.com/elberacasa/umbra">Star on GitHub</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+
+  <div class="os-card c1">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> supabase-shop.app</div>
+    <div class="os-body">Agent shipped the <strong>service_role key</strong> in the client bundle. Full database bypass for anyone who opens DevTools.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-secret">SECRET</span></div>
+  </div>
+
+  <div class="os-card c2">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> lovable-dashboard.app</div>
+    <div class="os-body">README claims <strong>"14 tests pass"</strong>. Umbra ran them in a sandbox. 3 pass. 11 don't exist.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-lie">LIE</span></div>
+  </div>
+
+  <div class="os-card c3">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> bolt-saas.app</div>
+    <div class="os-body"><strong>12 API routes, 0 auth checks.</strong> /api/users returns the full user table to the internet.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-auth">AUTH</span></div>
+  </div>
+
+  <div class="os-card c4">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> cursor-crm.app</div>
+    <div class="os-body"><strong>db.query(`WHERE id = ${userId}`)</strong> — the agent learned SQL from 2012 tutorials.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-injection">INJECTION</span></div>
+  </div>
+
+  <div class="os-card c5">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> v0-storefront.app</div>
+    <div class="os-body"><strong>app.db committed to git.</strong> The whole production database, in history, forever.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-exposure">EXPOSURE</span></div>
+  </div>
+
+  <div class="os-card c6">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> ai-notes.app</div>
+    <div class="os-body"><strong>cors('*') with credentials: true.</strong> Any website can act as your users.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-config">CONFIG</span></div>
+  </div>
+
+  <div class="os-card c7">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> gpt-agency.site</div>
+    <div class="os-body">CLAUDE.md says <strong>"production ready"</strong>. The build exits 1. Nobody replayed the claim.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-lie">LIE</span></div>
+  </div>
+
+  <div class="os-card c8">
+    <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> bolt-booking.app</div>
+    <div class="os-body"><strong>sk_live_…</strong> committed to <strong>.env</strong> and pushed. GitHub's scanner caught it. Theirs didn't.</div>
+    <div class="os-foot"><span class="os-btn">OK</span><span class="os-btn">Ignore</span><span class="cat cat-secret">SECRET</span></div>
+  </div>
+
+  <div class="hero-center">
+    <div class="hero-badge"><span class="dot">●</span> umbra — trust layer for the agent era</div>
+    <h1>AI wrote your code.<br><em>Can you trust it?</em></h1>
+    <p class="hero-sub">Umbra scores any AI-built repo 0–100. Security. Slop. Does it actually run. Is the agent lying about its tests. One command, fully local, evidence for every finding.</p>
+    <div class="hero-ctas">
+      <button class="cmd" id="copycmd" type="button"><span class="prompt">$</span> npx umbra-scan <span id="copyhint" style="color:#7a7362;font-size:11px">⧉ copy</span></button>
+      <a class="btn btn-ghost" href="https://github.com/elberacasa/umbra">★ Star on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ PROBLEM ═══ -->
+<section id="problem">
+  <div class="wrap">
+    <div class="section-label">THE PROBLEM_</div>
+    <h2>Everyone is vibecoding.<br><em>Nobody is verifying.</em></h2>
+    <p class="section-body">40–60% of AI-generated code ships with exploitable vulnerabilities, and agents report outcomes they never measured. The tooling for writing code with AI is a year ahead of the tooling for trusting it. Umbra measures four things no other tool checks together.</p>
+
+    <div class="axes">
+      <div class="axis-card">
+        <div class="axis-head"><span class="axis-dot" style="background:var(--danger)"></span>SAFE <span class="axis-weight">35%</span></div>
+        <div class="axis-q">Is it vulnerable? Secrets, RLS bypass, missing auth, injection, agent-config threats.</div>
+      </div>
+      <div class="axis-card">
+        <div class="axis-head"><span class="axis-dot" style="background:var(--cyan)"></span>RUNS <span class="axis-weight">25%</span></div>
+        <div class="axis-q">Does it actually build and boot? Verified in a Docker sandbox, not claimed in a README.</div>
+      </div>
+      <div class="axis-card">
+        <div class="axis-head"><span class="axis-dot" style="background:var(--warn)"></span>HONEST <span class="axis-weight">25%</span></div>
+        <div class="axis-q">Is the agent lying? Its claims replayed against reality, with receipts. Liars capped below passing.</div>
+      </div>
+      <div class="axis-card">
+        <div class="axis-head"><span class="axis-dot" style="background:var(--ok)"></span>CLEAN <span class="axis-weight">15%</span></div>
+        <div class="axis-q">How much is slop? Dead code, unused deps, mega-files, copy-paste duplication.</div>
+      </div>
+    </div>
+
+    <div class="connector">
+      <svg width="2" height="44"><line x1="1" y1="0" x2="1" y2="44" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="4 5"/></svg>
+    </div>
+
+    <div class="terminal">
+      <div class="os-bar"><span class="lights"><i></i><i></i><i></i></span> ~/your-vibe-coded-app — npx umbra-scan --deep</div>
+      <pre><span class="t-cyan">UMBRA TRUST SCORE: 49/100</span>  <span class="t-red">●</span>
+
+<span class="t-green">SAFE   ✅ 100/100</span> — 0 findings
+<span class="t-green">CLEAN  ✅ 100/100</span> — 0 findings
+<span class="t-dim">RUNS   — not measured — no detectable run path</span>
+<span class="t-purple">HONEST ⚠️  50/100</span> — 2 claims failed, 2 verified
+
+<span class="t-dim">Score capped below passing: a documented claim was verified false.</span>
+
+Claim receipts:
+  <span class="t-red">CLAIM FAILED: "14 tests pass"</span> — README.md:7 — actually 3 tests pass, 0 fail
+  <span class="t-red">CLAIM FAILED: "build passes"</span> — README.md:9 — actually build exits 1
+  <span class="t-dim">CLAIM VERIFIED: "All tests pass" — CLAUDE.md:3 — 3 tests pass</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SOLUTION ═══ -->
+<section id="solution" style="background:var(--paper-dim); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-label">THE SOLUTION_</div>
+    <h2>Umbra is where <span class="cyan">static analysis</span> meets <em>verification.</em></h2>
+    <p class="section-body">Scanners ask "is this pattern dangerous?" Umbra asks the question vibe coding actually raises: the AI wrote this — can I trust it? Pattern matching for what it wrote. A sandbox for what it does. Receipts for what it said.</p>
+
+    <div class="venn-wrap">
+      <svg width="920" height="420" viewBox="0 0 920 420" style="max-width:100%; height:auto" role="img" aria-label="Venn diagram: static analysis and verification intersect at Umbra">
+        <!-- left labels -->
+        <g font-family="JetBrains Mono, monospace" font-size="12" fill="#4a463d">
+          <text x="30" y="120">hardcoded secrets</text>
+          <text x="30" y="210">missing RLS / auth</text>
+          <text x="30" y="300">injection sinks</text>
+          <line x1="170" y1="116" x2="290" y2="116" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <line x1="170" y1="206" x2="290" y2="206" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <line x1="170" y1="296" x2="290" y2="296" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <circle cx="176" cy="113" r="3" fill="#0e9db8"/>
+          <circle cx="176" cy="203" r="3" fill="#0e9db8"/>
+          <circle cx="176" cy="293" r="3" fill="#0e9db8"/>
+        </g>
+        <!-- right labels -->
+        <g font-family="JetBrains Mono, monospace" font-size="12" fill="#4a463d">
+          <text x="720" y="120">boots in a sandbox</text>
+          <text x="720" y="210">claim receipts</text>
+          <text x="720" y="300">the liar cap</text>
+          <line x1="630" y1="116" x2="712" y2="116" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <line x1="630" y1="206" x2="712" y2="206" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <line x1="630" y1="296" x2="712" y2="296" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <circle cx="706" cy="113" r="3" fill="#7b2ff7"/>
+          <circle cx="706" cy="203" r="3" fill="#7b2ff7"/>
+          <circle cx="706" cy="293" r="3" fill="#7b2ff7"/>
+        </g>
+        <!-- circles -->
+        <circle cx="380" cy="210" r="150" fill="rgba(14,157,184,0.08)" stroke="#0e9db8" stroke-width="2.5"/>
+        <circle cx="540" cy="210" r="150" fill="rgba(123,47,247,0.08)" stroke="#7b2ff7" stroke-width="2.5"/>
+        <!-- dotted guide circles -->
+        <circle cx="380" cy="210" r="165" fill="none" stroke="#0e9db8" stroke-width="1" stroke-dasharray="3 6" opacity="0.4"/>
+        <circle cx="540" cy="210" r="165" fill="none" stroke="#7b2ff7" stroke-width="1" stroke-dasharray="3 6" opacity="0.4"/>
+        <text x="330" y="200" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#0e9db8" text-anchor="middle">STATIC</text>
+        <text x="330" y="216" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#0e9db8" text-anchor="middle">ANALYSIS</text>
+        <text x="592" y="200" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#7b2ff7" text-anchor="middle">VERIFICATION</text>
+        <text x="592" y="216" font-family="JetBrains Mono, monospace" font-size="11" fill="#7b2ff7" text-anchor="middle">sandbox + claims</text>
+        <!-- lens capsule -->
+        <rect x="411" y="188" width="98" height="44" rx="22" fill="#1b1a17"/>
+        <text x="460" y="215" font-family="JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#f6f1e7" text-anchor="middle">umbra</text>
+      </svg>
+    </div>
+    <p class="venn-cap">Deterministic rules. A locked-down sandbox. <b>One score, versioned forever.</b></p>
+  </div>
+</section>
+
+<!-- ═══ AUDIT ═══ -->
+<section id="audit">
+  <div class="wrap">
+    <div class="section-label">THE AUDIT_</div>
+    <h2>We scanned 61 vibe-coded repos. <em>Published everything.</em></h2>
+    <p class="section-body">Real numbers from public, actively-maintained AI-built repositories — with per-class deep dives, the full per-repo table, and an honest methodology including the false positives we found in our own rules and fixed.</p>
+
+    <div class="stats">
+      <div class="stat"><div class="num">25%</div><div class="lbl">had a hardcoded-secret finding — committed .env files, service keys in source</div></div>
+      <div class="stat"><div class="num">26%</div><div class="lbl">exposed API routes with no auth check at all</div></div>
+      <div class="stat"><div class="num">49%</div><div class="lbl">had injection sinks — SQL interpolation, unsafe HTML injection</div></div>
+      <div class="stat"><div class="num">13%</div><div class="lbl">committed entire databases or SQL dumps to git</div></div>
+    </div>
+
+    <div style="text-align:center; margin-top:44px">
+      <a class="btn btn-ghost" href="https://github.com/elberacasa/umbra/blob/main/docs/vibe-coding-audit-2026-08.md">Read the full audit →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="wrap">
+    <div class="big-cmd"><span class="prompt">$</span> npx umbra-scan</div>
+    <div class="foot-links">
+      <a href="https://github.com/elberacasa/umbra">github</a>
+      <a href="https://www.npmjs.com/package/@elberacasa/umbra">npm</a>
+      <a href="https://github.com/elberacasa/umbra/blob/main/docs/vibe-coding-audit-2026-08.md">the audit</a>
+      <a href="https://glama.ai/mcp/servers/elberacasa/umbra">mcp server</a>
+      <a href="https://github.com/elberacasa/umbra/blob/main/RUBRIC.md">rubric</a>
+    </div>
+    <div class="tiny">MIT licensed · deterministic · fully local · built by <a href="https://github.com/elberacasa" style="color:inherit">elberacasa</a></div>
+  </div>
+</footer>
+
+<script>
+document.getElementById('copycmd').addEventListener('click', function () {
+  navigator.clipboard.writeText('npx umbra-scan').then(() => {
+    const hint = document.getElementById('copyhint');
+    hint.textContent = '✓ copied';
+    hint.style.color = '#ffd166';
+    setTimeout(() => { hint.textContent = '⧉ copy'; hint.style.color = '#7a7362'; }, 1600);
+  });
+});
+</script>
+
+</body>
+</html>
