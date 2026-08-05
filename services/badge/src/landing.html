@@ -15,8 +15,8 @@
   --ink: #1b1a17;
   --ink-soft: #4a463d;
   --ink-faint: #8a8478;
-  --accent: #7b2ff7;
-  --accent-soft: #9b5cf7;
+  --accent: #0e8fa8;
+  --accent-soft: #22b8cf;
   --cyan: #0e9db8;
   --danger: #c2452d;
   --warn: #b97c1e;
@@ -68,13 +68,13 @@ nav .spacer { flex: 1; }
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn:hover { transform: translateY(-1px); }
-.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 0 #5a1ec2; }
-.btn-primary:hover { box-shadow: 0 4px 0 #5a1ec2; }
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 0 #0a6b7e; }
+.btn-primary:hover { box-shadow: 0 4px 0 #0a6b7e; }
 .btn-ghost { border: 1.5px solid var(--ink); color: var(--ink); background: transparent; }
 
 /* ── hero ────────────────────────────── */
 .hero { position: relative; min-height: 92vh; display: flex; align-items: center; justify-content: center; padding: 90px 0 70px; }
-.hero-center { position: relative; z-index: 5; text-align: center; max-width: 780px; padding: 0 24px; }
+.hero-center { position: relative; z-index: 10; text-align: center; max-width: 780px; padding: 0 24px; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--mono); font-size: 13px; font-weight: 500;
@@ -114,7 +114,7 @@ h1 em { font-style: italic; color: var(--accent); }
   text-align: left;
   transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
 }
-.os-card:hover { transform: translateY(-4px) rotate(0deg) !important; z-index: 8; box-shadow: 0 20px 44px rgba(27, 26, 23, 0.16); }
+.os-card:hover { transform: translateY(-4px) rotate(0deg) !important; z-index: 6; box-shadow: 0 20px 44px rgba(27, 26, 23, 0.16); }
 .os-bar {
   display: flex; align-items: center; gap: 7px;
   padding: 8px 12px; border-bottom: 1px solid var(--line);
@@ -135,7 +135,7 @@ h1 em { font-style: italic; color: var(--accent); }
 .os-btn { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); background: var(--paper); border-radius: 5px; padding: 3px 10px; color: var(--ink-soft); cursor: default; }
 .cat-secret { background: #f7dcd4; color: var(--danger); }
 .cat-lie { background: #f5e6c8; color: var(--warn); }
-.cat-auth { background: #e9defa; color: var(--accent); }
+.cat-auth { background: #e9defa; color: #7b2ff7; }
 .cat-injection { background: #f7dcd4; color: var(--danger); }
 .cat-config { background: #d9edf3; color: var(--cyan); }
 .cat-exposure { background: #f5e6c8; color: var(--warn); }
@@ -147,7 +147,7 @@ h1 em { font-style: italic; color: var(--accent); }
 .c4 { top: 38%; left: 1.5%; transform: rotate(-1.5deg); opacity: 0.85; }
 .c5 { top: 36%; right: 2%; transform: rotate(2deg); opacity: 0.85; }
 .c6 { bottom: 12%; left: 7%; transform: rotate(2deg); opacity: 0.9; }
-.c7 { bottom: 8%; left: 41%; transform: rotate(-2deg); }
+.c7 { bottom: 5%; left: 28%; transform: rotate(-2deg); opacity: 0.9; }
 .c8 { bottom: 11%; right: 7%; transform: rotate(-2.5deg); opacity: 0.9; }
 @media (max-width: 1100px) { .os-card { display: none; } .os-card.c2, .os-card.c7 { display: block; opacity: 0.5; z-index: 1; } }
 @media (max-width: 760px) { .os-card { display: none !important; } }
@@ -221,6 +221,11 @@ footer .tiny { font-family: var(--mono); font-size: 11px; color: var(--ink-faint
   section { padding: 70px 0; }
   .hero { min-height: auto; padding: 70px 0 50px; }
 }
+
+/* ── flowing dashes ──────────────────── */
+@keyframes dashflow { to { stroke-dashoffset: -18; } }
+.flow { animation: dashflow 1.4s linear infinite; }
+.flow-slow { animation: dashflow 3.2s linear infinite; }
 </style>
 </head>
 <body>
@@ -332,7 +337,7 @@ footer .tiny { font-family: var(--mono); font-size: 11px; color: var(--ink-faint
     </div>
 
     <div class="connector">
-      <svg width="2" height="44"><line x1="1" y1="0" x2="1" y2="44" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="4 5"/></svg>
+      <svg width="2" height="44"><line class="flow" x1="1" y1="0" x2="1" y2="44" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="4 5"/></svg>
     </div>
 
     <div class="terminal">
@@ -368,9 +373,9 @@ Claim receipts:
           <text x="30" y="120">hardcoded secrets</text>
           <text x="30" y="210">missing RLS / auth</text>
           <text x="30" y="300">injection sinks</text>
-          <line x1="170" y1="116" x2="290" y2="116" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
-          <line x1="170" y1="206" x2="290" y2="206" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
-          <line x1="170" y1="296" x2="290" y2="296" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <line x1="170" y1="116" x2="290" y2="116" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5" class="flow"/>
+          <line x1="170" y1="206" x2="290" y2="206" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5" class="flow"/>
+          <line x1="170" y1="296" x2="290" y2="296" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5" class="flow"/>
           <circle cx="176" cy="113" r="3" fill="#0e9db8"/>
           <circle cx="176" cy="203" r="3" fill="#0e9db8"/>
           <circle cx="176" cy="293" r="3" fill="#0e9db8"/>
@@ -380,9 +385,9 @@ Claim receipts:
           <text x="720" y="120">boots in a sandbox</text>
           <text x="720" y="210">claim receipts</text>
           <text x="720" y="300">the liar cap</text>
-          <line x1="630" y1="116" x2="712" y2="116" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
-          <line x1="630" y1="206" x2="712" y2="206" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
-          <line x1="630" y1="296" x2="712" y2="296" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5"/>
+          <line x1="630" y1="116" x2="712" y2="116" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5" class="flow"/>
+          <line x1="630" y1="206" x2="712" y2="206" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5" class="flow"/>
+          <line x1="630" y1="296" x2="712" y2="296" stroke="#8a8478" stroke-dasharray="4 5" stroke-width="1.5" class="flow"/>
           <circle cx="706" cy="113" r="3" fill="#7b2ff7"/>
           <circle cx="706" cy="203" r="3" fill="#7b2ff7"/>
           <circle cx="706" cy="293" r="3" fill="#7b2ff7"/>
@@ -391,8 +396,8 @@ Claim receipts:
         <circle cx="380" cy="210" r="150" fill="rgba(14,157,184,0.08)" stroke="#0e9db8" stroke-width="2.5"/>
         <circle cx="540" cy="210" r="150" fill="rgba(123,47,247,0.08)" stroke="#7b2ff7" stroke-width="2.5"/>
         <!-- dotted guide circles -->
-        <circle cx="380" cy="210" r="165" fill="none" stroke="#0e9db8" stroke-width="1" stroke-dasharray="3 6" opacity="0.4"/>
-        <circle cx="540" cy="210" r="165" fill="none" stroke="#7b2ff7" stroke-width="1" stroke-dasharray="3 6" opacity="0.4"/>
+        <circle cx="380" cy="210" r="165" fill="none" stroke="#0e9db8" stroke-width="1" stroke-dasharray="3 6" opacity="0.4" class="flow-slow"/>
+        <circle cx="540" cy="210" r="165" fill="none" stroke="#7b2ff7" stroke-width="1" stroke-dasharray="3 6" opacity="0.4" class="flow-slow"/>
         <text x="330" y="200" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#0e9db8" text-anchor="middle">STATIC</text>
         <text x="330" y="216" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#0e9db8" text-anchor="middle">ANALYSIS</text>
         <text x="592" y="200" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#7b2ff7" text-anchor="middle">VERIFICATION</text>
