@@ -21,6 +21,10 @@ inputs:
     description: 'Skip npm registry checks (dependency verification is skipped with a note).'
     required: false
     default: 'false'
+  publish:
+    description: 'Self-report the score to the hosted Umbra badge service (live README badge).'
+    required: false
+    default: 'false'
   github-token:
     description: 'Token used to post or update the pull-request comment.'
     required: false
@@ -81,6 +85,44 @@ runs:
         echo "score=${score}" >> "$GITHUB_OUTPUT"
         echo "report-path=${report}" >> "$GITHUB_OUTPUT"
         echo "scan-exit=${scan_exit}" >> "$GITHUB_OUTPUT"
+
+    - name: Publish score to the badge service
+      if: inputs.publish == 'true'
+      shell: bash
+      env:
+        UMBRA_REPORT: ${{ steps.scan.outputs.report-path }}
+        UMBRA_BADGE_URL: ${{ vars.UMBRA_BADGE_URL }}
+      run: |
+        set -u
+        # Publish is best-effort: it never affects the check result.
+        if [ -z "${UMBRA_REPORT}" ] || [ ! -s "${UMBRA_REPORT}" ]; then
+          echo "::warning::No Umbra report to publish; skipping."
+          exit 0
+        fi
+        base="${UMBRA_BADGE_URL:-https://umbra-badge.TBD.workers.dev}"
+        payload=$(node -e '
+          const r = require(process.argv[1]);
+          const axes = {};
+          for (const a of r.axes) axes[a.axis] = a.score;
+          const findings = { critical: 0, high: 0, medium: 0, low: 0 };
+          for (const f of [...r.findings, ...r.notes]) findings[f.severity] += 1;
+          process.stdout.write(JSON.stringify({
+            repo: process.env.GITHUB_REPOSITORY,
+            score: r.score,
+            axes,
+            rubricVersion: r.rubricVersion,
+            findings,
+            cliVersion: "github-action",
+          }));
+        ' "$UMBRA_REPORT") || { echo "::warning::Could not build the publish payload; skipping."; exit 0; }
+        code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+          -H 'content-type: application/json' --max-time 3 \
+          -d "$payload" "${base}/api/report") || code="000"
+        if [ "$code" = "200" ]; then
+          echo "Published Umbra score — live badge: ${base}/badge/${GITHUB_REPOSITORY}.svg"
+        else
+          echo "::warning::Umbra badge service publish failed (HTTP ${code}). The check result is unaffected."
+        fi
 
     - name: Render verdict
       id: verdict

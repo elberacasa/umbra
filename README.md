@@ -140,6 +140,7 @@ umbra [path] --fix         # apply provably-safe fixes and re-scan (score before
 umbra [path] --dry-run     # preview --fix without writing anything
 umbra [path] --baseline-write  # write .umbra-baseline.json: grandfather current findings, gate only on new ones
 umbra [path] --baseline <path> # use an explicit baseline file ("write" is shorthand for --baseline-write)
+umbra [path] --publish     # self-report the score to the hosted badge service (live README badge)
 umbra setup                # install everything (hooks + Action + agent guards)
 umbra init                 # only the pre-commit hook + GitHub Action
 umbra protect              # only the agent PreToolUse hooks (--remove uninstalls)
@@ -287,6 +288,10 @@ advertises its own trust score:
 ```
 
 [![Umbra Trust Score](https://img.shields.io/badge/Umbra_Trust_Score-30-red)](https://github.com/elberacasa/umbra)
+
+Static badges ship today; once the service in [`services/badge`](./services/badge)
+is deployed, `--publish` (or the Action's `publish: true`) upgrades this to a
+live badge backed by your CI's self-reported score.
 
 ## One engine, every surface
 

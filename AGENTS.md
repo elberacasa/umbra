@@ -55,6 +55,9 @@ Claude Code and Kimi Code; see docs/immune-layer.md).
 
 - Build: `npm run build` · Test: `npm test` (must stay green; Docker tests
   skip gracefully without a daemon).
+- `services/badge/` is a self-contained Cloudflare Worker (own package.json,
+  own vitest suite — `cd services/badge && npm test`; wrangler is a devDep
+  there only, never in the root package).
 - New rules live in `src/rules/<axis>/` and require a fixture under
   `fixtures/` plus a test under `tests/`. Only high/medium confidence
   findings may affect the score.

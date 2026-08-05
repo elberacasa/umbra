@@ -20,6 +20,7 @@ import { nextSteps } from './suggest.js';
 import { runGuardPayload } from './guard/hook.js';
 import { applyFixes, formatFixSection } from './fix/index.js';
 import type { FixReport } from './fix/index.js';
+import { buildPublishPayload, cliVersion, publishScore, repoFromGitConfig } from './publish.js';
 
 export const FAIL_THRESHOLD = 50;
 
@@ -38,6 +39,10 @@ export interface ExecuteOptions {
   baselineWrite?: boolean;
   /** Explicit baseline file path — or the literal 'write' as shorthand for baselineWrite. */
   baseline?: string;
+  /** Self-report the score to the hosted badge service. Warn-only on failure. */
+  publish?: boolean;
+  /** Test seam: injected fetch for --publish. */
+  publishFetch?: typeof fetch;
   scanOptions?: ScanOptions;
 }
 
@@ -129,6 +134,32 @@ export async function execute(targetPath: string, options: ExecuteOptions = {}):
   if (options.report === true) {
     result.markdown = toMarkdownReport(scan, score, axisReports);
   }
+
+  // --publish: self-report to the badge service. Stderr only — stdout (and
+  // the JSON report schema) stay untouched, and failures never fail the scan.
+  if (options.publish === true) {
+    if (options.offline === true) {
+      process.stderr.write('umbra: --publish skipped — cannot self-report in --offline mode\n');
+    } else {
+      const repo = repoFromGitConfig(root);
+      if (repo === undefined) {
+        process.stderr.write(
+          'umbra: --publish skipped — could not derive owner/name from git remote "origin"\n',
+        );
+      } else {
+        const outcome = await publishScore(
+          buildPublishPayload(repo, score, scan.findings, cliVersion()),
+          options.publishFetch !== undefined ? { fetchImpl: options.publishFetch } : {},
+        );
+        if (outcome.ok) {
+          process.stderr.write(`umbra: published — live badge: ${outcome.badge}\n`);
+        } else {
+          process.stderr.write(`umbra: --publish failed (scan unaffected): ${outcome.error}\n`);
+        }
+      }
+    }
+  }
+
   result.suggestions = nextSteps(score, options);
   return result;
 }
@@ -147,7 +178,8 @@ async function main(argv: string[]): Promise<number> {
     .option('--dry-run', 'with --fix: print what would change without writing anything')
     .option('--baseline-write', 'write .umbra-baseline.json into the scanned repo: current findings are grandfathered, the gate only blocks new findings')
     .option('--baseline <path>', 'use an explicit baseline file ("write" is shorthand for --baseline-write)')
-    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean; fix?: boolean; dryRun?: boolean; baselineWrite?: boolean; baseline?: string }) => {
+    .option('--publish', 'self-report the score to the hosted badge service (live README badge)')
+    .action(async (target: string, opts: { json?: boolean; offline?: boolean; deep?: boolean; report?: boolean; fix?: boolean; dryRun?: boolean; baselineWrite?: boolean; baseline?: string; publish?: boolean }) => {
       try {
         const result = await execute(target, opts);
         console.log(result.output);
