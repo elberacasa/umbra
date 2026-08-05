@@ -99,7 +99,7 @@ runs:
           echo "::warning::No Umbra report to publish; skipping."
           exit 0
         fi
-        base="${UMBRA_BADGE_URL:-https://umbra-badge.TBD.workers.dev}"
+        base="${UMBRA_BADGE_URL:-https://umbra-badge.umbrabadge.workers.dev}"
         payload=$(node -e '
           const r = require(process.argv[1]);
           const axes = {};

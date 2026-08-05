@@ -14,7 +14,7 @@ import type { ScoreResult } from './score/score.js';
  * workers.dev subdomain is account-scoped and finalizes when the service is
  * deployed — override with the UMBRA_BADGE_URL env var until then.
  */
-export const DEFAULT_BADGE_URL = 'https://umbra-badge.TBD.workers.dev';
+export const DEFAULT_BADGE_URL = 'https://umbra-badge.umbrabadge.workers.dev';
 
 export interface PublishPayload {
   repo: string;
