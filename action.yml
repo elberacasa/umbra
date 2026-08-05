@@ -1,8 +1,7 @@
 name: Umbra Trust Score
 description: >-
-  Scores the checked-out repository with Umbra (0-100 Trust Score), posts the
-  verdict as a pull-request comment, uploads the JSON report as an artifact,
-  and fails the check when the score drops below min-score.
+  Scores AI-generated code with Umbra's 0-100 Trust Score, comments the
+  verdict on your PR, and gates CI on it.
 author: elberacasa
 branding:
   icon: shield
