@@ -12,17 +12,20 @@ Umbra is a deterministic Trust Score (0–100) for AI-generated code: the vibe
 coding security scanner that verifies what your agent shipped, not what it
 claimed. One command, fully local, evidence for every finding.
 
+**→ [umbra-badge.umbrabadge.workers.dev](https://umbra-badge.umbrabadge.workers.dev) — the landing, live badges and report pages**
+
 [![npm version](https://img.shields.io/npm/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 [![npm downloads](https://img.shields.io/npm/dm/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 [![GitHub stars](https://img.shields.io/github/stars/elberacasa/umbra)](https://github.com/elberacasa/umbra/stargazers)
+[![website: live](https://img.shields.io/badge/website-live-0e8fa8)](https://umbra-badge.umbrabadge.workers.dev)
 [![Glama MCP score](https://glama.ai/mcp/servers/elberacasa/umbra/badges/score.svg)](https://glama.ai/mcp/servers/elberacasa/umbra)
 [![MCP registry: listed](https://img.shields.io/badge/MCP_registry-listed-00f0ff)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.elberacasa/umbra)
 [![license: MIT](https://img.shields.io/npm/l/@elberacasa/umbra)](./LICENSE)
 [![CI](https://github.com/elberacasa/umbra/actions/workflows/ci.yml/badge.svg)](https://github.com/elberacasa/umbra/actions/workflows/ci.yml)
-[![rubric v4](https://img.shields.io/badge/rubric-v4-b829f7)](./RUBRIC.md)
+[![rubric v4](https://img.shields.io/badge/rubric-v4-0e8fa8)](./RUBRIC.md)
 [![node >=20](https://img.shields.io/node/v/@elberacasa/umbra)](https://www.npmjs.com/package/@elberacasa/umbra)
 
-[Quickstart](#quickstart) · [Demo](#demo) · [The Audit](#the-audit-61-vibe-coded-repos-scanned) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing)
+[Quickstart](#quickstart) · [Demo](#demo) · [The Audit](#the-audit-61-vibe-coded-repos-scanned) · [How it works](#how-it-works) · [The Four Axes](#the-four-axes) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](#contributing) · [Website](https://umbra-badge.umbrabadge.workers.dev)
 
 </div>
 
